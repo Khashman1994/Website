@@ -282,12 +282,12 @@ async function send(btn) {
     return;
   }
 
-  // 2. Daten präzise einsammeln
+  // 2. Daten sicher einsammeln
   const data = {
-    Angebot: "AKTION 599 Euro (statt 1200 Euro)",
+    Aktion: "599 Euro Paket",
     Projekt_Typ: document.querySelector('input[name="t"]:checked')?.value || 'Nicht angegeben',
     Bestehende_Website: document.querySelector('input[name="e"]:checked')?.value || 'Nicht angegeben',
-    Branche: document.getElementById('branche')?.value || 'Nicht angegeben',
+    Branche: document.getElementById('branche')?.value || document.querySelector('#s3 input')?.value || 'Nicht angegeben',
     Hauptziel: document.querySelector('input[name="g"]:checked')?.value || 'Nicht angegeben',
     Name: document.getElementById('f-name')?.value || '',
     Email: document.getElementById('f-email')?.value || '',
@@ -295,7 +295,6 @@ async function send(btn) {
     Nachricht: document.getElementById('f-msg')?.value || ''
   };
 
-  // 3. Optisches Feedback
   const originalText = btn.textContent;
   btn.textContent = 'Wird gesendet...';
   btn.disabled = true;
@@ -311,24 +310,23 @@ async function send(btn) {
     });
 
     if(res.ok) {
-      btn.textContent = '✓ Anfrage für 599€ gesendet!';
-      btn.style.background = '#15803d';
+      btn.textContent = '✓ Anfrage gesendet!';
+      btn.style.background = '#15803d'; // Grün
       setTimeout(() => {
           btn.textContent = originalText;
           btn.style.background = '';
           btn.disabled = false;
       }, 5000);
     } else {
-      throw new Error('Server-Fehler');
+      throw new Error('Fehler beim Senden');
     }
   } catch(e) {
     btn.textContent = 'Fehler – bitte erneut versuchen.';
-    btn.style.background = '#dc2626';
+    btn.style.background = '#dc2626'; // Rot
     btn.disabled = false;
   }
 }
 
-// Reveal Animation beim Scrollen
 const obs = new IntersectionObserver(es => es.forEach(e => {
   if(e.isIntersecting) e.target.classList.add('on')
 }), {threshold: 0.1});
