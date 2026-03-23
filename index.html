@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Khashman Alturki – Webentwickler für Arztpraxen</title>
-<meta name="description" content="Professionelle Praxis-Websites von Khashman Alturki. Modern, DSGVO-konform, sicher. Jetzt kostenloses Angebot einholen!"/>
+<title>Khashman Alturki – Webentwickler aus Aachen</title>
+<meta name="description" content="Professionelle Websites von Khashman Alturki. Frontend, Backend, WordPress. Jetzt kostenloses Angebot einholen!"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -36,8 +36,6 @@ nav{background:rgba(250,247,242,0.94);backdrop-filter:blur(20px);border-bottom:1
 .nav-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:600;letter-spacing:0.03em}
 .nav-logo span{color:var(--gold)}
 .nav-contact{display:flex;align-items:center;gap:0.6rem;font-size:0.82rem;font-weight:500;color:var(--mid)}
-.nav-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* HERO */
 .hero{background:var(--cream);padding:4rem 3rem;position:relative;overflow:hidden}
@@ -47,9 +45,7 @@ nav{background:rgba(250,247,242,0.94);backdrop-filter:blur(20px);border-bottom:1
 /* PHOTO */
 .photo-wrap{position:relative}
 .photo-frame{position:relative;border-radius:4px;overflow:hidden;box-shadow:20px 20px 0 var(--gold-light),0 30px 70px rgba(0,0,0,0.14)}
-.photo-frame img{width:100%;max-height:540px;object-fit:cover;object-position:center top;display:block}
-.photo-badge{position:absolute;bottom:-14px;left:20px;background:var(--charcoal);color:var(--gold-light);padding:0.8rem 1.3rem;font-size:0.72rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;gap:0.5rem}
-.gold-stars{color:var(--gold);letter-spacing:1px}
+.photo-frame img{width:100%;height:540px;object-fit:cover;object-position:center top;display:block}
 
 /* HERO CONTENT */
 .hero-eyebrow{font-size:0.7rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;display:flex;align-items:center;gap:0.7rem}
@@ -95,7 +91,7 @@ h1 em{font-style:italic;color:var(--gold-dark)}
 .about{background:var(--cream);padding:4rem 3rem}
 .about-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
 .about-img{border-radius:4px;overflow:hidden;box-shadow:20px 20px 0 var(--warm)}
-.about-img img{width:100%;max-height:480px;object-fit:cover;object-position:center top}
+.about-img img{width:100%;height:480px;object-fit:cover;object-position:center top}
 .cl{list-style:none;margin:1.1rem 0 1.8rem}
 .cl li{display:flex;align-items:center;gap:0.65rem;font-size:0.87rem;padding:0.5rem 0;border-bottom:1px solid var(--border);color:var(--mid)}
 .cl li::before{content:'✦';color:var(--gold);font-size:0.6rem;flex-shrink:0}
@@ -120,7 +116,7 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
   .hero{padding:2.5rem 1.2rem}
   .hero::after{display:none}
   .hero-inner,.about-inner{grid-template-columns:1fr;gap:2rem}
-  .reviews,.about,.trust-bar{padding:2.5rem 1.2rem}
+  .about,.trust-bar{padding:2.5rem 1.2rem}
   footer{padding:1.3rem 1.2rem;flex-direction:column;align-items:flex-start}
 }
 </style>
@@ -161,13 +157,13 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
   <div class="hero-inner">
     <div class="photo-wrap reveal">
       <div class="photo-frame">
-        <img src="foto.jpg" alt="Khashman Alturki – Webentwickler aus Aachen" width="540" height="540"/>
+        <img src="foto.jpg" alt="Khashman Alturki – Webentwickler aus Aachen" width="540" height="540" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=1000';"/>
       </div>
     </div>
     <div class="reveal">
       <div class="hero-eyebrow">Webentwickler &amp; RWTH Aachen</div>
-      <h1>Digitale Entlastung<br>für Ihre<br><em>Praxis.</em></h1>
-      <p class="hero-sub">Hallo 👋 Mein Name ist <strong>Khashman Alturki</strong>. Als Informatik-Student an der <strong>RWTH Aachen</strong> kombiniere ich modernstes Webdesign mit höchster technischer Präzision und Datensicherheit für Ihre Praxis.</p>
+      <h1>Websites, die<br><em>wirklich</em><br>überzeugen.</h1>
+      <p class="hero-sub">Hallo 👋 Mein Name ist <strong>Khashman Alturki</strong>. Webentwickler mit <strong>3 Jahren Erfahrung</strong>, Informatik-Student an der <strong>RWTH Aachen</strong> – kurz vor dem Abschluss.</p>
       <div class="badges">
         <span class="badge">Frontend &amp; Backend</span>
         <span class="badge">WordPress &amp; CMS</span>
@@ -183,12 +179,13 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
           <div class="prog-s" id="p3"></div><div class="prog-s" id="p4"></div>
           <div class="prog-s" id="p5"></div>
         </div>
+        
         <div class="step active" id="s1">
           <div class="step-lbl">01 — Was darf ich erstellen?</div>
           <div class="rg">
-            <label class="rl"><input type="radio" name="t" value="Website-Neuerstellung" onclick="go(2)"/> Praxis-Website (Neuerstellung)</label>
-            <label class="rl"><input type="radio" name="t" value="Modernisierung & DSGVO-Check" onclick="go(2)"/> Modernisierung & DSGVO-Check</label>
-            <label class="rl"><input type="radio" name="t" value="Online-Termine/Rezepte" onclick="go(2)"/> Integration von Online-Terminen/Rezepten</label>
+            <label class="rl"><input type="radio" name="t" value="Website" onclick="go(2)"/> Website</label>
+            <label class="rl"><input type="radio" name="t" value="Onlineshop" onclick="go(2)"/> Onlineshop</label>
+            <label class="rl"><input type="radio" name="t" value="Landing Page" onclick="go(2)"/> Landing Page</label>
           </div>
         </div>
         <div class="step" id="s2">
@@ -199,25 +196,24 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
           </div>
         </div>
         <div class="step" id="s3">
-          <div class="step-lbl">03 — Ihre Fachrichtung?</div>
-          <input class="fi" id="branche" type="text" placeholder="z.B. Hausarzt, Zahnarzt, Physiotherapie" aria-label="Ihre Branche"/>
+          <div class="step-lbl">03 — In welcher Branche?</div>
+          <input class="fi" id="branche" type="text" placeholder="z.B. Handwerk, Gastronomie, Beratung" aria-label="Ihre Branche"/>
           <button class="btn" onclick="go(4)">Weiter</button>
         </div>
         <div class="step" id="s4">
-          <div class="step-lbl">04 — Was ist Ihr wichtigstes Ziel?</div>
+          <div class="step-lbl">04 — Ziel der Website?</div>
           <div class="rg">
-            <label class="rl"><input type="radio" name="g" value="Telefon-Entlastung" onclick="go(5)"/> Das Team am Telefon entlasten</label>
-            <label class="rl"><input type="radio" name="g" value="Personal finden" onclick="go(5)"/> Neue MFAs oder Azubis finden</label>
-            <label class="rl"><input type="radio" name="g" value="DSGVO-Sicherheit" onclick="go(5)"/> Rechtssichere & moderne Website</label>
-            <label class="rl"><input type="radio" name="g" value="Patienten-Info" onclick="go(5)"/> Patienten besser informieren</label>
+            <label class="rl"><input type="radio" name="g" value="Mehr Neukunden" onclick="go(5)"/> Mehr Neukunden</label>
+            <label class="rl"><input type="radio" name="g" value="Mehr Sichtbarkeit" onclick="go(5)"/> Mehr Sichtbarkeit</label>
+            <label class="rl"><input type="radio" name="g" value="Internetpräsenz verbessern" onclick="go(5)"/> Internetpräsenz verbessern</label>
           </div>
         </div>
         <div class="step" id="s5">
           <div class="step-lbl">05 — Ihre Kontaktdaten</div>
-          <label class="fl" for="f-name">Name / Praxis</label><input class="fi" id="f-name" type="text" placeholder="Dr. Max Mustermann" autocomplete="name"/>
-          <label class="fl" for="f-email">E-Mail</label><input class="fi" id="f-email" type="email" placeholder="praxis@beispiel.de" autocomplete="email"/>
+          <label class="fl" for="f-name">Name</label><input class="fi" id="f-name" type="text" placeholder="Max Mustermann" autocomplete="name"/>
+          <label class="fl" for="f-email">E-Mail</label><input class="fi" id="f-email" type="email" placeholder="max@beispiel.de" autocomplete="email"/>
           <label class="fl" for="f-tel">Telefon</label><input class="fi" id="f-tel" type="tel" placeholder="+49 ..." autocomplete="tel"/>
-          <label class="fl" for="f-msg">Nachricht (optional)</label><textarea class="fta" id="f-msg" placeholder="Welche Herausforderungen gibt es aktuell?"></textarea>
+          <label class="fl" for="f-msg">Nachricht (optional)</label><textarea class="fta" id="f-msg" placeholder="Was wünschen Sie sich?"></textarea>
           <div class="cbw"><input type="checkbox" id="dsgvo" required/><label for="dsgvo">Ich willige ein, dass meine Daten zur Bearbeitung meiner Anfrage gespeichert werden. (<a href="datenschutz.html" style="color:var(--gold-dark)">Datenschutz</a>)</label></div>
           <button class="btn" onclick="send(this)">Angebot einholen</button>
         </div>
@@ -228,7 +224,7 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
 
 <div class="trust-bar">
   <div class="trust-inner">
-    <div class="ti"><span class="ti-icon" aria-hidden="true">✦</span> Praxis-Spezialist</div>
+    <div class="ti"><span class="ti-icon" aria-hidden="true">✦</span> 20+ Projekte</div>
     <div class="ti"><span class="ti-icon" aria-hidden="true">✦</span> Schnelle Umsetzung</div>
     <div class="ti"><span class="ti-icon" aria-hidden="true">✦</span> DSGVO-konform</div>
     <div class="ti"><span class="ti-icon" aria-hidden="true">✦</span> Responsive Design</div>
@@ -239,18 +235,19 @@ footer{background:var(--charcoal);padding:1.8rem 3rem;display:flex;align-items:c
 <section class="about">
   <div class="about-inner">
     <div class="about-img reveal">
-      <img src="foto.jpg" alt="Khashman Alturki am Laptop" width="480" height="480"/>
+      <img src="foto.jpg" alt="Khashman Alturki am Laptop" width="480" height="480" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1000';"/>
     </div>
     <div class="reveal">
       <div class="eyebrow">Über mich</div>
-      <h2 class="sec-title">Professionelle Praxis-Websites, die überzeugen.</h2>
-      <p style="font-size:0.9rem;color:var(--mid);font-weight:300;margin:0.8rem 0">Mein Name ist <strong style="color:var(--charcoal)">Khashman Alturki</strong>. Ich weiß, dass Ihr Praxisalltag hektisch ist. Deshalb biete ich Ihnen einen Rundum-Sorglos-Service: Ich kümmere mich um Technik, Updates und Sicherheit, damit Sie sich voll auf Ihre Patienten konzentrieren können.</p>
+      <h2 class="sec-title">Professionelle Websites, die beeindrucken &amp; überzeugen.</h2>
+      <p style="font-size:0.9rem;color:var(--mid);font-weight:300;margin:0.8rem 0">Mein Name ist <strong style="color:var(--charcoal)">Khashman Alturki</strong>. Ich bin Webentwickler mit <strong style="color:var(--charcoal)">3 Jahren Erfahrung</strong> und studiere Informatik an der <strong style="color:var(--charcoal)">RWTH Aachen</strong> – kurz vor dem Abschluss. Gerne erstelle ich Ihnen Ihre individuelle Website!</p>
       <ul class="cl">
         <li style="font-weight: 700; color: var(--gold-dark);">Aktueller Aktionspreis: 599€ (limitiert)</li>
-        <li>Individuelles Webdesign für den medizinischen Bereich</li>
-        <li>Responsive Design (perfekt für Smartphones)</li>
-        <li>Lokale SEO-Optimierung (besser auf Google gefunden werden)</li>
-        <li>DSGVO-konform & rechtssicher</li>
+        <li>Individuelles Webdesign</li>
+        <li>Responsive Design (Handy, Tablet, Desktop)</li>
+        <li>SEO-optimiert für Google</li>
+        <li>Frontend, Backend &amp; WordPress</li>
+        <li>DSGVO-konform &amp; rechtssicher</li>
         <li>Keine Mindestvertragslaufzeit</li>
       </ul>
       <a href="#" class="cta-btn" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Kostenloses Angebot einholen</a>
