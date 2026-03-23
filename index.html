@@ -276,30 +276,31 @@ function go(n){
 }
 
 async function send(btn) {
-  // 1. Datenschutz-Check
-  if(!document.getElementById('dsgvo').checked) {
-    alert('Bitte bestätigen Sie die Datenschutzerklärung.');
-    return;
-  }
-
-  // 2. Daten sicher einsammeln
-  const data = {
-    Aktion: "599 Euro Paket",
-    Projekt_Typ: document.querySelector('input[name="t"]:checked')?.value || 'Nicht angegeben',
-    Bestehende_Website: document.querySelector('input[name="e"]:checked')?.value || 'Nicht angegeben',
-    Branche: document.getElementById('branche')?.value || document.querySelector('#s3 input')?.value || 'Nicht angegeben',
-    Hauptziel: document.querySelector('input[name="g"]:checked')?.value || 'Nicht angegeben',
-    Name: document.getElementById('f-name')?.value || '',
-    Email: document.getElementById('f-email')?.value || '',
-    Telefon: document.getElementById('f-tel')?.value || '',
-    Nachricht: document.getElementById('f-msg')?.value || ''
-  };
-
-  const originalText = btn.textContent;
-  btn.textContent = 'Wird gesendet...';
-  btn.disabled = true;
-
   try {
+    // 1. Datenschutz-Check
+    if(!document.getElementById('dsgvo').checked) {
+      alert('Bitte bestätigen Sie die Datenschutzerklärung (Häkchen setzen).');
+      return;
+    }
+
+    // 2. Daten sammeln
+    const data = {
+      Angebot: "AKTION 599 Euro (statt 1200 Euro)",
+      Projekt_Typ: document.querySelector('input[name="t"]:checked')?.value || 'Nicht angegeben',
+      Bestehende_Website: document.querySelector('input[name="e"]:checked')?.value || 'Nicht angegeben',
+      Branche: document.getElementById('branche')?.value || 'Nicht angegeben',
+      Hauptziel: document.querySelector('input[name="g"]:checked')?.value || 'Nicht angegeben',
+      Name: document.getElementById('f-name')?.value || '',
+      Email: document.getElementById('f-email')?.value || '',
+      Telefon: document.getElementById('f-tel')?.value || '',
+      Nachricht: document.getElementById('f-msg')?.value || ''
+    };
+
+    const originalText = btn.textContent;
+    btn.textContent = 'Wird gesendet...';
+    btn.disabled = true;
+
+    // 3. Senden an Formspree
     const res = await fetch('https://formspree.io/f/xnjgkdka', {
       method: 'POST',
       headers: {
@@ -318,15 +319,19 @@ async function send(btn) {
           btn.disabled = false;
       }, 5000);
     } else {
-      throw new Error('Fehler beim Senden');
+      // Wenn Formspree ablehnt (z.B. Limit voll)
+      throw new Error('Formspree hat die Anfrage abgelehnt. Eventuell ist dein monatliches Limit von 50 Tests erreicht.');
     }
   } catch(e) {
+    // Wenn ein JavaScript-Fehler oder Netzwerkfehler auftritt
+    alert('Fehler beim Senden: ' + e.message);
     btn.textContent = 'Fehler – bitte erneut versuchen.';
     btn.style.background = '#dc2626'; // Rot
     btn.disabled = false;
   }
 }
 
+// Reveal Animation
 const obs = new IntersectionObserver(es => es.forEach(e => {
   if(e.isIntersecting) e.target.classList.add('on')
 }), {threshold: 0.1});
