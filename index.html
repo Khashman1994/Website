@@ -284,46 +284,64 @@ function go(n){
   cur=n;
   document.getElementById('s'+n).classList.add('active');
 }
-async function send(btn){
-  if(!document.getElementById('dsgvo').checked){alert('Bitte Datenschutz bestätigen.');return;}
-  
-  const form = btn.closest('.form-box');
+async function send(btn) {
+  // 1. Datenschutz-Check
+  if(!document.getElementById('dsgvo').checked) {
+    alert('Bitte bestätigen Sie die Datenschutzerklärung.');
+    return;
+  }
+
+  // 2. Daten präzise einsammeln
   const data = {
-    typ: document.querySelector('input[name="t"]:checked')?.value || '',
-    bestehendeWebsite: document.querySelector('input[name="e"]:checked')?.value || '',
-    branche: form.querySelector('input[type="text"]')?.value || '',
-    ziel: document.querySelector('input[name="g"]:checked')?.value || '',
-    name: form.querySelectorAll('input[type="text"]')[1]?.value || '',
-    email: form.querySelector('input[type="email"]')?.value || '',
-    telefon: form.querySelector('input[type="tel"]')?.value || '',
-    nachricht: form.querySelector('textarea')?.value || ''
+    Projekt_Typ: document.querySelector('input[name="t"]:checked')?.value || 'Nicht angegeben',
+    Bestehende_Website: document.querySelector('input[name="e"]:checked')?.value || 'Nicht angegeben',
+    Branche: document.querySelector('#s3 .fi')?.value || 'Nicht angegeben',
+    Hauptziel: document.querySelector('input[name="g"]:checked')?.value || 'Nicht angegeben',
+    Name: document.getElementById('f-name')?.value || '',
+    Email: document.getElementById('f-email')?.value || '',
+    Telefon: document.getElementById('f-tel')?.value || '',
+    Nachricht: document.getElementById('f-msg')?.value || ''
   };
 
+  // 3. Optisches Feedback
+  const originalText = btn.textContent;
   btn.textContent = 'Wird gesendet...';
   btn.disabled = true;
 
   try {
     const res = await fetch('https://formspree.io/f/xnjgkdka', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(data)
     });
-    if(res.ok){
-      btn.textContent = '✓ Vielen Dank! Ich melde mich innerhalb von 24h.';
+
+    if(res.ok) {
+      btn.textContent = '✓ Nachricht gesendet!';
       btn.style.background = '#15803d';
+      setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '';
+          btn.disabled = false;
+      }, 5000);
     } else {
-      btn.textContent = 'Fehler – bitte erneut versuchen.';
-      btn.style.background = '#dc2626';
-      btn.disabled = false;
+      throw new Error('Server-Fehler');
     }
-  } catch(e){
+  } catch(e) {
     btn.textContent = 'Fehler – bitte erneut versuchen.';
     btn.style.background = '#dc2626';
     btn.disabled = false;
   }
 }
-const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on')}),{threshold:0.1});
-document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Diesen Teil unbedingt behalten, damit die Animationen beim Scrollen funktionieren:
+const obs = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting) e.target.classList.add('on')
+}), {threshold: 0.1});
+
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 </script>
 </body>
 </html>
