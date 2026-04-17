@@ -13,12 +13,12 @@ export default function AboutPage() {
 
   const values = isAr
     ? [
-        { icon: Target,  title: 'دقة المطابقة',      desc: 'نستخدم GPT-4o لتحليل كل وظيفة وكل ملف شخصي على حدة، لضمان أفضل تطابق ممكن.' },
+        { icon: Target,  title: 'دقة المطابقة',      desc: 'نستخدم أحدث تقنيات الذكاء الاصطناعي لتحليل كل وظيفة وكل ملف شخصي على حدة، لضمان أفضل تطابق ممكن.' },
         { icon: Heart,   title: 'للمنطقة، من المنطقة', desc: 'صممنا المنصة خصيصاً للسوق العربي بالكامل، بفهم عميق لثقافة العمل في المنطقة.' },
         { icon: Globe,   title: 'تغطية شاملة',        desc: '16 دولة، 80+ مدينة، وآلاف الوظائف من كبرى الشركات في الشرق الأوسط وشمال أفريقيا.' },
       ]
     : [
-        { icon: Target,  title: 'Matching Precision',  desc: 'We use GPT-4o to analyse each job and each profile individually, ensuring the best possible match.' },
+        { icon: Target,  title: 'Matching Precision',  desc: 'We use state-of-the-art AI technology to analyse each job and each profile individually, ensuring the best possible match.' },
         { icon: Heart,   title: 'For the Region',      desc: 'Designed specifically for the Arab market with a deep understanding of the region\'s work culture.' },
         { icon: Globe,   title: 'Full Coverage',       desc: '16 countries, 80+ cities, and thousands of jobs from top companies across the MENA region.' },
       ];

@@ -133,6 +133,10 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          {/* Language toggle in mobile menu */}
+          <div className="pt-2 border-t border-slate-100">
+            <LanguageSwitcher />
+          </div>
           <div className="pt-2 border-t border-slate-100">
             {userEmail ? (
               <div className="flex gap-2">
