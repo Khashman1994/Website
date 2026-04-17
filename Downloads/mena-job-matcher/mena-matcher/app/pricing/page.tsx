@@ -26,6 +26,26 @@ const PLANS = [
     disabled: true,
   },
   {
+    id:       'starter',
+    icon:     Zap,
+    color:    'emerald',
+    badge:    'TRY IT',
+    priceUSD: 1,
+    priceAR:  '4 ر.س',
+    titleEN:  'Starter',
+    titleAR:  'المبتدئ',
+    descEN:   '5 Stars — try AI matching for $1',
+    descAR:   '5 نجمات — جرّب المطابقة بدولار واحد',
+    features: {
+      en: ['5 AI match stars','Unlock 5 job details','Full AI analysis per job','No subscription'],
+      ar: ['5 نجمات للمطابقة','فتح 5 وظائف كاملة','تحليل ذكاء اصطناعي لكل وظيفة','بدون اشتراك'],
+    },
+    ctaEN:    'Get 5 Stars — $1',
+    ctaAR:    'احصل على 5 نجمات — 4 ر.س',
+    planId:   'starter',
+    disabled: false,
+  },
+  {
     id:       'coins_50',
     icon:     Zap,
     color:    'orange',
@@ -51,7 +71,7 @@ const PLANS = [
     color:    'violet',
     badge:    'BEST VALUE',
     priceUSD: 19.99,
-    priceAR:  '71 ر.س',
+    priceAR:  '75 ر.س',
     titleEN:  'Pro',
     titleAR:  'برو',
     descEN:   '500 Stars/month · Full AI analysis',
@@ -60,7 +80,7 @@ const PLANS = [
       en: ['500 Stars per month (renews monthly)','Priority email alerts','Early access to new jobs','Export matches to PDF','Dedicated support'],
       ar: ['500 نجمة شهرياً (تتجدد كل شهر)','تنبيهات بريد إلكتروني ذات أولوية','وصول مبكر للوظائف الجديدة','تصدير المطابقات PDF','دعم متخصص'],
     },
-    ctaEN:    'Start Unlimited — $19/mo',
+    ctaEN:    'Get Pro — $19.99/mo',
     ctaAR:    'اشترك في برو — 75 ر.س/شهر',
     planId:   'pro_monthly',
     disabled: false,
@@ -68,9 +88,10 @@ const PLANS = [
 ];
 
 const COLOR_MAP: Record<string, Record<string, string>> = {
-  slate:  { bg:'bg-slate-50',  border:'border-slate-200', icon:'text-slate-500',  btn:'bg-slate-200 text-slate-600 cursor-default', badge:'bg-slate-100 text-slate-500' },
-  orange: { bg:'bg-orange-50', border:'border-orange-400 ring-2 ring-orange-300', icon:'text-orange-500', btn:'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200', badge:'bg-orange-500 text-white' },
-  violet: { bg:'bg-violet-50', border:'border-violet-300', icon:'text-violet-500', btn:'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200', badge:'bg-violet-600 text-white' },
+  slate:   { bg:'bg-slate-50',   border:'border-slate-200',  icon:'text-slate-500',  btn:'bg-slate-200 text-slate-600 cursor-default',                           badge:'bg-slate-100 text-slate-500'  },
+  emerald: { bg:'bg-emerald-50', border:'border-emerald-300', icon:'text-emerald-500', btn:'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200', badge:'bg-emerald-500 text-white' },
+  orange:  { bg:'bg-orange-50',  border:'border-orange-400 ring-2 ring-orange-300', icon:'text-orange-500', btn:'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200',   badge:'bg-orange-500 text-white'  },
+  violet:  { bg:'bg-violet-50',  border:'border-violet-300', icon:'text-violet-500', btn:'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200',   badge:'bg-violet-600 text-white'  },
 };
 
 export default function PricingPage() {

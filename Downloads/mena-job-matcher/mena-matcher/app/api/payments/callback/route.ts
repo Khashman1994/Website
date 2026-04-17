@@ -8,7 +8,8 @@ const API_KEY  = process.env.MYFATOORAH_API_KEY;
 const APP_URL  = process.env.NEXT_PUBLIC_APP_URL  ?? 'http://localhost:3000';
 
 const PLAN_CREDITS: Record<string, { credits: number; tier: string }> = {
-  pro_monthly: { credits: 500, tier: 'pro' },
+  starter:     { credits: 5,   tier: 'free' },
+  pro_monthly: { credits: 500, tier: 'pro'  },
   coins_50:    { credits: 50,  tier: 'free' },
 };
 
@@ -38,9 +39,11 @@ async function verifyAndActivate(paymentId: string, planId: string, userId: stri
       last_reset_date: new Date().toISOString(),
     }).eq('user_id', userId);
   } else {
+    // coins_50 (+50) or starter (+5)
+    const addCredits = planId === 'coins_50' ? 50 : 5;
     const { data: prof } = await sb.from('profiles').select('credits').eq('user_id', userId).single();
     await sb.from('profiles').update({
-      credits: (prof?.credits ?? 0) + 50,
+      credits: (prof?.credits ?? 0) + addCredits,
     }).eq('user_id', userId);
   }
 
