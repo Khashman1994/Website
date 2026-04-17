@@ -9,8 +9,8 @@ const APP_URL  = process.env.NEXT_PUBLIC_APP_URL  ?? 'http://localhost:3000';
 
 const PLAN_CREDITS: Record<string, { credits: number; tier: string }> = {
   starter:     { credits: 5,   tier: 'free' },
-  pro_monthly: { credits: 500, tier: 'pro'  },
   coins_50:    { credits: 50,  tier: 'free' },
+  pro_monthly: { credits: 500, tier: 'pro'  },
 };
 
 async function verifyAndActivate(paymentId: string, planId: string, userId: string) {
