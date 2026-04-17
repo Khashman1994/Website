@@ -1,13 +1,14 @@
 'use client';
 // app/login/page.tsx
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { Loader2, Mail, Lock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+// Inner component that uses useSearchParams (must be inside Suspense)
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('reason') === 'inactivity';
@@ -190,5 +191,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Suspense wrapper — required by Next.js for useSearchParams during SSG
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-warm" />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }
