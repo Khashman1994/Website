@@ -2,10 +2,11 @@
 // app/contact/page.tsx
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, MessageSquare, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useLang } from '@/lib/i18n/LanguageContext';
+import { createClient } from '@/lib/supabase';
 
 export default function ContactPage() {
   const { lang } = useLang();
@@ -13,17 +14,35 @@ export default function ContactPage() {
 
   const [name,    setName]    = useState('');
   const [email,   setEmail]   = useState('');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent,    setSent]    = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    // Simulate send — replace with your email service (Resend, Sendgrid, etc.)
-    await new Promise((r) => setTimeout(r, 1200));
-    setSent(true);
-    setSending(false);
+    setError(null);
+
+    try {
+      const supabase = createClient();
+      const { error: dbError } = await supabase
+        .from('contact_messages')
+        .insert({ name, email, subject, message });
+
+      if (dbError) throw new Error(dbError.message);
+
+      setSent(true);
+      setName(''); setEmail(''); setSubject(''); setMessage('');
+    } catch (err: any) {
+      console.error('[contact] Submit error:', err);
+      setError(isAr
+        ? 'فشل الإرسال. يرجى المحاولة مرة أخرى لاحقاً.'
+        : 'Failed to send. Please try again later.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const inp = `w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-slate-400`;
@@ -61,9 +80,15 @@ export default function ContactPage() {
                 <h2 className="font-semibold text-secondary-900 text-xl mb-2">
                   {isAr ? 'تم الإرسال!' : 'Message Sent!'}
                 </h2>
-                <p className="text-neutral-500 text-sm">
+                <p className="text-neutral-500 text-sm mb-5">
                   {isAr ? 'شكراً لتواصلك. سنرد عليك خلال 24 ساعة.' : "Thank you for reaching out. We'll respond within 24 hours."}
                 </p>
+                <button
+                  onClick={() => setSent(false)}
+                  className="text-primary-500 hover:text-primary-600 text-sm font-medium transition-colors"
+                >
+                  {isAr ? 'إرسال رسالة أخرى' : 'Send another message'}
+                </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -79,14 +104,14 @@ export default function ContactPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-                      {isAr ? 'الاسم' : 'Name'}
+                      {isAr ? 'الاسم' : 'Name'} *
                     </label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
                       placeholder={isAr ? 'اسمك الكامل' : 'Your full name'} className={inp} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-                      {isAr ? 'البريد الإلكتروني' : 'Email'}
+                      {isAr ? 'البريد الإلكتروني' : 'Email'} *
                     </label>
                     <div className="relative">
                       <Mail className={`absolute top-3.5 ${isAr ? 'right-3' : 'left-3'} w-4 h-4 text-slate-400`} />
@@ -99,17 +124,35 @@ export default function ContactPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-                    {isAr ? 'الرسالة' : 'Message'}
+                    {isAr ? 'الموضوع' : 'Subject'}
+                  </label>
+                  <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
+                    placeholder={isAr ? 'موضوع رسالتك' : 'What is this about?'} className={inp} />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                    {isAr ? 'الرسالة' : 'Message'} *
                   </label>
                   <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={5}
                     placeholder={isAr ? 'كيف يمكننا مساعدتك؟' : 'How can we help you?'}
                     className={`${inp} resize-none`} />
                 </div>
 
+                {/* Error message */}
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
+
                 <button type="submit" disabled={sending}
-                  className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {isAr ? 'إرسال الرسالة' : 'Send Message'}
+                  className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm active:scale-[0.98]">
+                  {sending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />{isAr ? 'جارٍ الإرسال...' : 'Sending...'}</>
+                    : <><Send className="w-4 h-4" />{isAr ? 'إرسال الرسالة' : 'Send Message'}</>
+                  }
                 </button>
               </form>
             )}
