@@ -5,7 +5,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const BASE_URL = process.env.MYFATOORAH_BASE_URL  ?? 'https://apitest.myfatoorah.com';
 const API_KEY  = process.env.MYFATOORAH_API_KEY;
-const APP_URL  = process.env.NEXT_PUBLIC_APP_URL  ?? 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_SITE_URL
+             ?? process.env.NEXT_PUBLIC_APP_URL
+             ?? 'https://www.menajob-ai.com';
 
 const PLAN_CREDITS: Record<string, { credits: number; tier: string }> = {
   starter:     { credits: 5,   tier: 'free' },

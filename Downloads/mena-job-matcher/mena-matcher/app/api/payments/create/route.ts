@@ -30,9 +30,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized — not logged in' }, { status: 401 });
 
+    // Dynamic base URL — never falls back to localhost in production
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
                  ?? process.env.NEXT_PUBLIC_APP_URL
-                 ?? 'http://localhost:3000';
+                 ?? `https://${req.headers.get('host')}`;
+
+    console.log(`[myfatoorah] siteUrl="${siteUrl}"`);
 
     const body = {
       PaymentMethodId:    2,             // 2 = KNET | 1 = Visa/MC | remove for all methods
