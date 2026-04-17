@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables (kept for backward compat with any remaining rgb() refs) ── */
+@layer base {
+  :root {
+    --primary-500: 249 115 22;
+    --secondary-900: 15 23 42;
+    --background: 250 250 249;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-neutral-50 text-neutral-900 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  /* Arabic overrides */
+  [lang="ar"] body,
+  [lang="ar"] {
+    font-family: 'Cairo', sans-serif;
+  }
+  [lang="ar"] h1,
+  [lang="ar"] h2,
+  [lang="ar"] h3,
+  [lang="ar"] h4,
+  [lang="ar"] h5,
+  [lang="ar"] h6 {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+  }
+}
+
+/* ─── Gradient utilities ──────────────────────────────────────────────────── */
+@layer utilities {
+  .bg-gradient-warm {
+    background: linear-gradient(135deg, #fff7ed 0%, #fef9f5 50%, #fffbf0 100%);
+  }
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  }
+  .bg-gradient-navy {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  .texture-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+  }
+}
+
+/* ─── Component utilities ────────────────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-neutral-200;
+  }
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-card-hover;
+  }
+  .input-base {
+    @apply w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all placeholder:text-neutral-400;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-semibold
+           rounded-xl transition-colors shadow-sm active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply px-5 py-2.5 border border-neutral-300 hover:border-primary-400
+           text-neutral-700 hover:text-primary-600 font-semibold
+           rounded-xl transition-colors active:scale-[0.98];
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+}
+
+/* ─── RTL fixes ──────────────────────────────────────────────────────────── */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
