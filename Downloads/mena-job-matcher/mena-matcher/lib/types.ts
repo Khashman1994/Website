@@ -42,6 +42,7 @@ export interface Job {
   url: string;
   postedDate?: string;
   source: 'jsearch' | 'mock' | 'supabase' | 'serp';
+  isArabic?: boolean;
   isMock?: boolean;  // true when job comes from local mock data (Stage 3 fallback)
 }
 
