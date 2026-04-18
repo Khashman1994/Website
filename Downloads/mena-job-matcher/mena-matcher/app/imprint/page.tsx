@@ -19,8 +19,8 @@ export default function ImprintPage() {
           <p>{isAr ? 'البريد الإلكتروني:' : 'Email:'} contact@menajob-ai.com</p>
           <p className="text-neutral-400 text-xs mt-8">
             {isAr
-              ? 'جميع الحقوق محفوظة © 2025 MENA Matcher'
-              : '© 2025 MENA Matcher. All rights reserved.'}
+              ? 'جميع الحقوق محفوظة © 2026 MENA Matcher'
+              : '© 2026 MENA Matcher. All rights reserved.'}
           </p>
         </div>
       </main>

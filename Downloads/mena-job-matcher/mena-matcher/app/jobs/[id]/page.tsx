@@ -77,6 +77,23 @@ export async function generateMetadata(
   };
 }
 
+// ── Employment type mapper ────────────────────────────────────────────────────
+function toSchemaEmploymentType(type?: string): string {
+  const map: Record<string, string> = {
+    'full-time':  'FULL_TIME',
+    'fulltime':   'FULL_TIME',
+    'part-time':  'PART_TIME',
+    'parttime':   'PART_TIME',
+    'contract':   'CONTRACTOR',
+    'contractor': 'CONTRACTOR',
+    'freelance':  'CONTRACTOR',
+    'temporary':  'TEMPORARY',
+    'intern':     'INTERN',
+    'volunteer':  'VOLUNTEER',
+  };
+  return map[type?.toLowerCase() ?? ''] ?? 'FULL_TIME';
+}
+
 // ── Page Component ────────────────────────────────────────────────────────────
 export default async function JobPage({ params }: { params: { id: string } }) {
   const job = await getJob(params.id);
@@ -86,8 +103,58 @@ export default async function JobPage({ params }: { params: { id: string } }) {
     ? `${job.salary_min.toLocaleString()} – ${job.salary_max?.toLocaleString()} ${job.salary_currency ?? ''}`
     : null;
 
+  // ── JSON-LD: Schema.org JobPosting ────────────────────────────────────────
+  const jsonLd = {
+    '@context':       'https://schema.org',
+    '@type':          'JobPosting',
+    title:            job.title,
+    description:      job.description ?? job.title,
+    datePosted:       job.posted_at
+                        ? new Date(job.posted_at).toISOString().split('T')[0]
+                        : new Date().toISOString().split('T')[0],
+    validThrough:     new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    employmentType:   toSchemaEmploymentType(job.employment_type),
+    jobLocationType:  job.remote ? 'TELECOMMUTE' : undefined,
+    url:              `${BASE_URL}/jobs/${job.id}`,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name:    job.company,
+    },
+    jobLocation: {
+      '@type':  'Place',
+      address: {
+        '@type':           'PostalAddress',
+        addressLocality:   job.location?.split(',')[0]?.trim() ?? job.location,
+        addressCountry:    job.location?.toLowerCase().includes('uae') ? 'AE'
+                         : job.location?.toLowerCase().includes('saudi') ? 'SA'
+                         : job.location?.toLowerCase().includes('kuwait') ? 'KW'
+                         : job.location?.toLowerCase().includes('qatar') ? 'QA'
+                         : job.location?.toLowerCase().includes('egypt') ? 'EG'
+                         : job.location?.toLowerCase().includes('jordan') ? 'JO'
+                         : 'AE',
+      },
+    },
+    ...(job.salary_min && {
+      baseSalary: {
+        '@type':    'MonetaryAmount',
+        currency:   job.salary_currency ?? 'USD',
+        value: {
+          '@type':    'QuantitativeValue',
+          minValue:   job.salary_min,
+          maxValue:   job.salary_max ?? job.salary_min,
+          unitText:   'MONTH',
+        },
+      },
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* JSON-LD Structured Data for Google Jobs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 px-4">
         <div className="max-w-3xl mx-auto">
