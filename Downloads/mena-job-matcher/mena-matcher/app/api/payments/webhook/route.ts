@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const BASE_URL = process.env.MYFATOORAH_BASE_URL ?? 'https://apitest.myfatoorah.com';
+const BASE_URL = process.env.MYFATOORAH_BASE_URL ?? 'https://api.myfatoorah.com';
 const API_KEY  = process.env.MYFATOORAH_API_KEY;
 
 export async function POST(req: NextRequest) {

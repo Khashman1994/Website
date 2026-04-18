@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
-const BASE_URL = process.env.MYFATOORAH_BASE_URL  ?? 'https://apitest.myfatoorah.com';
+const BASE_URL = process.env.MYFATOORAH_BASE_URL  ?? 'https://api.myfatoorah.com';
 const TOKEN    = process.env.MYFATOORAH_TOKEN      // ← matches MYFATOORAH_TOKEN in .env.local
               ?? process.env.MYFATOORAH_API_KEY;   // fallback for old key name
 
