@@ -5,6 +5,12 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Building2, ExternalLink, ArrowLeft, Briefcase } from 'lucide-react';
 
+// ISR: revalidate every 24 hours — Google sees fresh content
+export const revalidate = 86400;
+
+// Tell Next.js to generate pages on-demand for unknown IDs (new jobs)
+export const dynamicParams = true;
+
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL
               ?? process.env.NEXT_PUBLIC_APP_URL
               ?? 'https://www.menajob-ai.com';
@@ -125,13 +131,20 @@ export default async function JobPage({ params }: { params: { id: string } }) {
       address: {
         '@type':           'PostalAddress',
         addressLocality:   job.location?.split(',')[0]?.trim() ?? job.location,
-        addressCountry:    job.location?.toLowerCase().includes('uae') ? 'AE'
-                         : job.location?.toLowerCase().includes('saudi') ? 'SA'
-                         : job.location?.toLowerCase().includes('kuwait') ? 'KW'
-                         : job.location?.toLowerCase().includes('qatar') ? 'QA'
-                         : job.location?.toLowerCase().includes('egypt') ? 'EG'
-                         : job.location?.toLowerCase().includes('jordan') ? 'JO'
-                         : 'AE',
+        addressCountry:    (() => {
+                             const loc = job.location?.toLowerCase() ?? '';
+                             if (loc.includes('uae') || loc.includes('dubai') || loc.includes('abu dhabi') || loc.includes('sharjah')) return 'AE';
+                             if (loc.includes('saudi') || loc.includes('riyadh') || loc.includes('jeddah') || loc.includes('ksa')) return 'SA';
+                             if (loc.includes('kuwait')) return 'KW';
+                             if (loc.includes('qatar') || loc.includes('doha')) return 'QA';
+                             if (loc.includes('egypt') || loc.includes('cairo')) return 'EG';
+                             if (loc.includes('jordan') || loc.includes('amman')) return 'JO';
+                             if (loc.includes('bahrain') || loc.includes('manama')) return 'BH';
+                             if (loc.includes('oman') || loc.includes('muscat')) return 'OM';
+                             if (loc.includes('lebanon') || loc.includes('beirut')) return 'LB';
+                             if (loc.includes('morocco') || loc.includes('casablanca')) return 'MA';
+                             return 'AE';
+                           })(),
       },
     },
     ...(job.salary_min && {
