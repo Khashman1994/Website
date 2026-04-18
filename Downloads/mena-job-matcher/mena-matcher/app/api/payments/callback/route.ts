@@ -11,7 +11,7 @@ const APP_URL  = process.env.NEXT_PUBLIC_SITE_URL
 
 // Credits granted per plan
 const PLAN_CREDITS: Record<string, { credits: number; tier: string; amount: number }> = {
-  starter:     { credits: 5,   tier: 'free', amount: 1.00  },
+  coins_25:    { credits: 25,  tier: 'free', amount: 5.00  },
   coins_50:    { credits: 50,  tier: 'free', amount: 10.00 },
   pro_monthly: { credits: 500, tier: 'pro',  amount: 19.99 },
 };

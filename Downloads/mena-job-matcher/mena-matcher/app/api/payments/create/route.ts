@@ -7,9 +7,9 @@ const TOKEN    = process.env.MYFATOORAH_TOKEN      // ← matches MYFATOORAH_TOK
               ?? process.env.MYFATOORAH_API_KEY;   // fallback for old key name
 
 const PLANS: Record<string, { value: number; description: string }> = {
-  starter:     { value: 1.00,  description: 'MENA Matcher Starter — 5 Stars' },
-  coins_50:    { value: 10.00, description: 'MENA Matcher — 50 Stars'         },
-  pro_monthly: { value: 19.99, description: 'MENA Matcher Pro — 500 Stars'    },
+  coins_25:    { value: 5.00,  description: 'MenaJob AI — 25 Stars'           },
+  coins_50:    { value: 10.00, description: 'MenaJob AI — 50 Stars'            },
+  pro_monthly: { value: 19.99, description: 'MenaJob AI Pro — 500 Stars'      },
 };
 
 export async function POST(req: NextRequest) {

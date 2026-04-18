@@ -26,23 +26,23 @@ const PLANS = [
     disabled: true,
   },
   {
-    id:       'starter',
+    id:       'coins_25',
     icon:     Zap,
-    color:    'emerald',
-    badge:    'TRY IT',
-    priceUSD: 1,
-    priceAR:  '4 ر.س',
-    titleEN:  'Starter',
-    titleAR:  'المبتدئ',
-    descEN:   '5 Stars — try AI matching for $1',
-    descAR:   '5 نجمات — جرّب المطابقة بدولار واحد',
+    color:    'orange',
+    badge:    'BEST VALUE',
+    priceUSD: 5,
+    priceAR:  '$5',
+    titleEN:  'Starter Pack',
+    titleAR:  'باقة المبتدئين',
+    descEN:   '25 Stars — unlock 25 jobs instantly',
+    descAR:   '25 نجمة — افتح 25 وظيفة فوراً',
     features: {
-      en: ['5 AI match stars','Unlock 5 job details','Full AI analysis per job','No subscription'],
-      ar: ['5 نجمات للمطابقة','فتح 5 وظائف كاملة','تحليل ذكاء اصطناعي لكل وظيفة','بدون اشتراك'],
+      en: ['25 AI match stars','Unlock 25 job details','Full AI analysis per job','Credits never expire'],
+      ar: ['25 نجمة للمطابقة','فتح 25 وظيفة كاملة','تحليل ذكاء اصطناعي لكل وظيفة','الأرصدة لا تنتهي'],
     },
-    ctaEN:    'Get 5 Stars — $1',
-    ctaAR:    'احصل على 5 نجمات — 4 ر.س',
-    planId:   'starter',
+    ctaEN:    'Get 25 Stars — $5',
+    ctaAR:    'احصل على 25 نجمة — $5',
+    planId:   'coins_25',
     disabled: false,
   },
   {
@@ -51,17 +51,17 @@ const PLANS = [
     color:    'orange',
     badge:    'POPULAR',
     priceUSD: 10,
-    priceAR:  '37 ر.س',
-    titleEN:  'Pay as You Go',
-    titleAR:  'ادفع حسب الاستخدام',
-    descEN:   '50 AI matches, never expire',
-    descAR:   '50 مطابقة ذكاء اصطناعي، لا تنتهي',
+    priceAR:  '$10',
+    titleEN:  'Value Pack',
+    titleAR:  'باقة القيمة',
+    descEN:   '50 Stars — best value per star',
+    descAR:   '50 نجمة — أفضل قيمة للنجمة',
     features: {
-      en: ['50 AI match credits','Credits never expire','Priority job alerts','Detailed match insights'],
-      ar: ['50 رصيد مطابقة ذكاء اصطناعي','الأرصدة لا تنتهي','تنبيهات وظيفية ذات أولوية','تحليل تفصيلي للمطابقة'],
+      en: ['50 AI match stars','Unlock 50 job details','Full AI analysis per job','Credits never expire'],
+      ar: ['50 نجمة للمطابقة','فتح 50 وظيفة كاملة','تحليل ذكاء اصطناعي لكل وظيفة','الأرصدة لا تنتهي'],
     },
-    ctaEN:    'Buy 50 Credits — $10',
-    ctaAR:    'اشترِ 50 رصيداً — 37 ر.س',
+    ctaEN:    'Get 50 Stars — $10',
+    ctaAR:    'احصل على 50 نجمة — $10',
     planId:   'coins_50',
     disabled: false,
   },
@@ -71,7 +71,7 @@ const PLANS = [
     color:    'violet',
     badge:    'BEST VALUE',
     priceUSD: 19.99,
-    priceAR:  '75 ر.س',
+    priceAR:  '$19.99',
     titleEN:  'Pro',
     titleAR:  'برو',
     descEN:   '500 Stars/month · Full AI analysis',
@@ -81,7 +81,7 @@ const PLANS = [
       ar: ['500 نجمة شهرياً (تتجدد كل شهر)','تنبيهات بريد إلكتروني ذات أولوية','وصول مبكر للوظائف الجديدة','تصدير المطابقات PDF','دعم متخصص'],
     },
     ctaEN:    'Get Pro — $19.99/mo',
-    ctaAR:    'اشترك في برو — 75 ر.س/شهر',
+    ctaAR:    'اشترك في برو — $19.99/شهر',
     planId:   'pro_monthly',
     disabled: false,
   },
@@ -109,11 +109,28 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       });
-      const { paymentUrl, error } = await res.json();
-      if (error) { alert(error); return; }
-      if (paymentUrl) window.location.href = paymentUrl; // redirect to MyFatoorah
-    } catch {
-      alert(isAr ? 'فشل في إنشاء الدفع' : 'Payment creation failed. Please try again.');
+
+      const json = await res.json();
+      console.log('[payment] Response:', json);
+
+      if (!res.ok || json.error) {
+        const errMsg = json.error ?? `HTTP ${res.status}`;
+        const validationInfo = json.validationErrors
+          ? '\n' + JSON.stringify(json.validationErrors)
+          : '';
+        alert(`Payment error: ${errMsg}${validationInfo}`);
+        return;
+      }
+
+      if (json.paymentUrl) {
+        window.location.href = json.paymentUrl;
+      } else {
+        alert('No payment URL returned. Check console.');
+        console.error('[payment] Full response:', json);
+      }
+    } catch (err: any) {
+      alert(`Network error: ${err.message}`);
+      console.error('[payment] Fetch error:', err);
     } finally {
       setLoading(null);
     }
