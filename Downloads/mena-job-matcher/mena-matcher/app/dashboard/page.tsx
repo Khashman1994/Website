@@ -56,11 +56,24 @@ export default function DashboardPage() {
 
   // ── Init — Database First ─────────────────────────────────────────────────
   useEffect(() => {
-    // Show success toast if returning from MyFatoorah payment
+    // Handle payment return from MyFatoorah
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('upgraded') === 'true') {
-        addToast('🎉 ' + (lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added to your account'));
+      const payment = params.get('payment');
+      const credits = params.get('credits');
+      if (payment === 'success') {
+        const msg = credits
+          ? `🎉 ${lang === 'ar' ? `تم إضافة ${credits} نجمة لحسابك!` : `${credits} Stars added to your account!`}`
+          : `🎉 ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح!' : 'Plan activated successfully!'}`;
+        addToast(msg);
+        // Reload credits from DB
+        setUserCredits(prev => prev + Number(credits ?? 0));
+      } else if (payment === 'failed') {
+        addToast(`❌ ${lang === 'ar' ? 'فشلت عملية الدفع. يرجى المحاولة مجدداً.' : 'Payment failed. Please try again.'}`);
+      } else if (params.get('upgraded') === 'true') {
+        addToast(`🎉 ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added.'}`);
+      }
+      if (payment || params.get('upgraded')) {
         window.history.replaceState({}, '', '/dashboard');
       }
     }
