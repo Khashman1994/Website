@@ -75,13 +75,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Log to payments table
-    await sb.from('payments').insert({
-      user_id:               userId,
-      myfatoorah_payment_id: String(invoiceId),
-      amount:                data.Data?.InvoiceValue ?? 0,
-      credits_added:         creditsToAdd,
-      status:                'paid',
-    }).then(() => {}).catch(() => {});
+    try {
+      await sb.from('payments').insert({
+        user_id:               userId,
+        myfatoorah_payment_id: String(invoiceId),
+        amount:                data.Data?.InvoiceValue ?? 0,
+        credits_added:         creditsToAdd,
+        status:                'paid',
+      });
+    } catch { /* non-blocking */ }
 
     return NextResponse.json({ ok: true });
 
