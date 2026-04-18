@@ -32,7 +32,7 @@ async function getJob(id: string) {
 export async function generateMetadata(
   { params }: { params: { id: string } }
 ): Promise<Metadata> {
-  const job = await getJob(params.id);
+  const job = await getJob(decodeURIComponent(params.id));
 
   if (!job) {
     return {
@@ -96,7 +96,7 @@ function toSchemaEmploymentType(type?: string): string {
 
 // ── Page Component ────────────────────────────────────────────────────────────
 export default async function JobPage({ params }: { params: { id: string } }) {
-  const job = await getJob(params.id);
+  const job = await getJob(decodeURIComponent(params.id));
   if (!job) notFound();
 
   const salary = job.salary_min
