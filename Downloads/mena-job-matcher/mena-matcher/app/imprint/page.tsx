@@ -16,7 +16,7 @@ export default function ImprintPage() {
         </h1>
         <div className="space-y-3 text-sm text-neutral-700">
           <p><strong>MENA Matcher</strong></p>
-          <p>{isAr ? 'البريد الإلكتروني:' : 'Email:'} contact@menamatcher.com</p>
+          <p>{isAr ? 'البريد الإلكتروني:' : 'Email:'} contact@menajob-ai.com</p>
           <p className="text-neutral-400 text-xs mt-8">
             {isAr
               ? 'جميع الحقوق محفوظة © 2025 MENA Matcher'
