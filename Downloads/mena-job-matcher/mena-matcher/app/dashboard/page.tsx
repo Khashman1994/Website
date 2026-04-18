@@ -54,30 +54,34 @@ export default function DashboardPage() {
   };
   const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
-  // ── Init — Database First ─────────────────────────────────────────────────
+  // ── Payment return handler ────────────────────────────────────────────────
   useEffect(() => {
-    // Handle payment return from MyFatoorah
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const payment = params.get('payment');
-      const credits = params.get('credits');
+    if (typeof window === 'undefined') return;
+    const params  = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const credits = params.get('credits');
+    const upgraded = params.get('upgraded');
+
+    if (!payment && !upgraded) return;
+
+    // Small delay so the dashboard finishes mounting before showing toast
+    const timer = setTimeout(() => {
       if (payment === 'success') {
         const msg = credits
           ? `🎉 ${lang === 'ar' ? `تم إضافة ${credits} نجمة لحسابك!` : `${credits} Stars added to your account!`}`
           : `🎉 ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح!' : 'Plan activated successfully!'}`;
         addToast(msg);
-        // Reload credits from DB
-        setUserCredits(prev => prev + Number(credits ?? 0));
+        if (credits) setUserCredits(prev => prev + Number(credits));
       } else if (payment === 'failed') {
         addToast(`❌ ${lang === 'ar' ? 'فشلت عملية الدفع. يرجى المحاولة مجدداً.' : 'Payment failed. Please try again.'}`);
-      } else if (params.get('upgraded') === 'true') {
-        addToast(`🎉 ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added.'}`);
+      } else if (upgraded === 'true') {
+        addToast(`🎉 ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added to your account.'}`);
       }
-      if (payment || params.get('upgraded')) {
-        window.history.replaceState({}, '', '/dashboard');
-      }
-    }
-  }, []);
+      window.history.replaceState({}, '', '/dashboard');
+    }, 1500); // wait 1.5s for init to complete
+
+    return () => clearTimeout(timer);
+  }, [lang]); // lang dependency ensures correct translation
   useEffect(() => {
     async function init() {
       try {

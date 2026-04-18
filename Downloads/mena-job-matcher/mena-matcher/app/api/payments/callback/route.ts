@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`[callback] ✓ Credited ${plan.credits} stars to user ${userId} | new balance: ${newCredits}`);
 
-    return NextResponse.redirect(`${APP_URL}/dashboard?payment=success&credits=${plan.credits}`);
+    return NextResponse.redirect(`${APP_URL}/payment-success?credits=${plan.credits}`);
 
   } catch (err: any) {
     console.error('[callback] DB error:', err.message);
