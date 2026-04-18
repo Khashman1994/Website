@@ -24,23 +24,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-
-    const { data: jobs, error } = await sb
+    const { data: jobs } = await sb
       .from('jobs')
       .select('id, fetched_at')
-      .gt('expires_at', new Date().toISOString()) // only non-expired jobs
+      .gt('expires_at', new Date().toISOString())
       .limit(5000);
 
-    if (error) {
-      console.error('[sitemap] Supabase error:', error.message);
-    } else if (jobs?.length) {
+    if (jobs?.length) {
       jobRoutes = jobs.map(job => ({
         url:             `${BASE_URL}/jobs/${job.id}`,
         lastModified:    job.fetched_at ? new Date(job.fetched_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority:        0.8,
       }));
-      console.log(`[sitemap] Generated ${jobRoutes.length} job URLs`);
     }
   } catch (err) {
     console.error('[sitemap] Failed to fetch jobs:', err);
