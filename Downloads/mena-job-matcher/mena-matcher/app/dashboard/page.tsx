@@ -46,7 +46,6 @@ export default function DashboardPage() {
   const [userEmail,         setUserEmail]         = useState<string | null>(null);
   const [isLoggedIn,        setIsLoggedIn]        = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [modalStartTab,     setModalStartTab]     = useState<'upload' | 'manual'>('upload');
   const [toasts,            setToasts]            = useState<{ id: string; message: string; undoLabel?: string; onUndo?: () => void }[]>([]);
 
   const addToast = (message: string, undoLabel?: string, onUndo?: () => void) => {
@@ -55,44 +54,17 @@ export default function DashboardPage() {
   };
   const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
-  // ── Payment return handler ────────────────────────────────────────────────
+  // ── Init — Database First ─────────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params   = new URLSearchParams(window.location.search);
-    const payment  = params.get('payment');
-    const credits  = params.get('credits');
-    const upgraded = params.get('upgraded');
-
-    if (!payment && !upgraded) return;
-
-    // Delay so dashboard finishes mounting + credits reload from DB
-    const timer = setTimeout(() => {
-      if (payment === 'success') {
-        const msg = credits
-          ? `Payment successful! ${credits} Stars added to your account!`
-          : `Plan activated successfully!`;
-        addToast(msg);
-        if (credits) setUserCredits(prev => prev + Number(credits));
-        // Reload profile from DB to show updated credits
-        createClient().from('profiles')
-          .select('credits, tier, free_matches_used')
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              setUserCredits(data.credits ?? 0);
-              setUserTier(data.tier ?? 'free');
-            }
-          }).catch(() => {});
-      } else if (payment === 'failed') {
-        addToast('Payment failed. Please try again.');
-      } else if (upgraded === 'true') {
-        addToast('Pro plan activated! 500 Stars added to your account.');
+    // Show success toast if returning from MyFatoorah payment
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('upgraded') === 'true') {
+        addToast('🎉 ' + (lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added to your account'));
+        window.history.replaceState({}, '', '/dashboard');
       }
-      window.history.replaceState({}, '', '/dashboard');
-    }, 2000); // 2s — enough for DB write + page hydration
-
-    return () => clearTimeout(timer);
-  }, [lang]);
+    }
+  }, []);
   useEffect(() => {
     async function init() {
       try {
@@ -130,49 +102,9 @@ export default function DashboardPage() {
             setProfile(dbProfile);
             sessionStorage.setItem('userProfile', JSON.stringify(dbProfile));
           } else {
-            // ── Guest handoff: check localStorage first (survives auth redirects)
-            const pendingGuest = localStorage.getItem('pending_guest_profile');
-            if (pendingGuest) {
-              try {
-                const guestProfile = JSON.parse(pendingGuest);
-                const guestKeywords = (() => {
-                  try { return JSON.parse(localStorage.getItem('pending_guest_keywords') ?? '[]'); } catch { return []; }
-                })();
-
-                // Save to Supabase now that user is authenticated
-                const supabase = createClient();
-                const { data: { user: authUser } } = await supabase.auth.getUser();
-                if (authUser) {
-                  await supabase.from('profiles').upsert({
-                    user_id:           authUser.id,
-                    email:             authUser.email ?? null,
-                    full_name:         guestProfile.name ?? null,
-                    cv_data:           guestProfile,
-                    search_keywords:   guestKeywords,
-                    updated_at:        new Date().toISOString(),
-                    tier:              'free',
-                    credits:           0,
-                    free_matches_used: 0,
-                    last_reset_date:   new Date().toISOString(),
-                  }, { onConflict: 'user_id' });
-                }
-
-                setProfile(guestProfile);
-                sessionStorage.setItem('userProfile', pendingGuest);
-                // Clean up — profile is now in DB
-                localStorage.removeItem('pending_guest_profile');
-                localStorage.removeItem('pending_guest_keywords');
-                console.log('[dashboard] Guest profile hydrated from localStorage');
-              } catch (e) {
-                console.error('[dashboard] Failed to hydrate guest profile:', e);
-                localStorage.removeItem('pending_guest_profile');
-              }
-            } else {
-              // Fallback to sessionStorage
-              const cached = sessionStorage.getItem('userProfile');
-              if (cached) {
-                try { setProfile(JSON.parse(cached)); } catch {}
-              }
+            const cached = sessionStorage.getItem('userProfile');
+            if (cached) {
+              try { setProfile(JSON.parse(cached)); } catch {}
             }
           }
 
@@ -403,7 +335,7 @@ export default function DashboardPage() {
         try { sessionStorage.setItem('mena_unlocked_ids', JSON.stringify([...next])); } catch {}
         return next;
       });
-      addToast(isAr ? ' تم فتح الوظيفة! رصيد متبقي: ' + newCredits : ` Job unlocked! Credits left: ${newCredits}`);
+      addToast(isAr ? '🔓 تم فتح الوظيفة! رصيد متبقي: ' + newCredits : `🔓 Job unlocked! Credits left: ${newCredits}`);
       // Update Supabase in background
       try {
         const supabase = createClient();
@@ -445,27 +377,19 @@ export default function DashboardPage() {
               {isAr ? 'لا يوجد ملف شخصي بعد' : 'No profile yet'}
             </h2>
             <p className="text-neutral-500 text-sm mb-6">
-              {isAr ? 'ارفع سيرتك الذاتية أو أدخل بياناتك يدوياً لبدء مطابقة الوظائف' : 'Upload your CV or enter details manually to start matching jobs'}
+              {isAr ? 'ارفع سيرتك الذاتية لبدء مطابقة الوظائف' : 'Upload your CV to start matching jobs'}
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => { setModalStartTab('upload'); setIsUploadModalOpen(true); }} size="lg">
-                <Upload className="w-4 h-4 me-2" />
-                {isAr ? 'ارفع سيرتك الذاتية' : ' Upload CV'}
-              </Button>
-              <button
-                onClick={() => { setModalStartTab('manual'); setIsUploadModalOpen(true); }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-orange-300 bg-white text-orange-600 hover:bg-orange-50 font-semibold rounded-xl transition-all text-sm"
-              >
-                (pencil) {isAr ? 'إدخال يدوي' : 'Enter Details Manually'}
-              </button>
-            </div>
+            <Button onClick={() => setIsUploadModalOpen(true)} size="lg">
+              <Upload className="w-4 h-4 me-2" />
+              {isAr ? 'ارفع سيرتك الذاتية' : 'Upload CV'}
+            </Button>
           </div>
         </div>
+        {/* Upload modal — mounted here so it works before profile exists */}
         {isUploadModalOpen && (
           <ReUploadModal
             lang={lang}
             isLoggedIn={isLoggedIn}
-            initialTab={modalStartTab}
             onClose={() => setIsUploadModalOpen(false)}
             onSuccess={(newProfile) => {
               handleProfileUpdate(newProfile);
@@ -504,20 +428,13 @@ export default function DashboardPage() {
                 {/* Tier badge */}
                 {userTier === 'pro' && (
                   <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded-full">
-                     {isAr ? 'غير محدود' : 'Unlimited'}
+                    👑 {isAr ? 'غير محدود' : 'Unlimited'}
                   </span>
                 )}
                 {userTier !== 'pro' && (
-                  <a
-                    href="/pricing"
-                    title={isAr ? 'شراء المزيد من الرصيد' : 'Buy more credits'}
-                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-full cursor-pointer transition-colors flex items-center gap-1"
-                  >
+                  <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded-full">
                     ⚡ {userCredits} {isAr ? 'رصيد' : 'credits'}
-                    <span className="ml-1 opacity-80 text-[10px] uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded-full">
-                      {isAr ? 'شراء' : 'Buy'}
-                    </span>
-                  </a>
+                  </span>
                 )}
                 {userTier === 'free' && userCredits === 0 && matchesLeft !== null && (
                   <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
@@ -671,7 +588,7 @@ export default function DashboardPage() {
                         </div>
                         {matchesLeft <= 1 && (
                           <p className="text-xs text-orange-500 mt-1.5 font-medium text-center">
-                             {isAr ? 'اقتربت من الحد الشهري —' : 'Almost at your limit —'}
+                            ⚠️ {isAr ? 'اقتربت من الحد الشهري —' : 'Almost at your limit —'}
                             {' '}<a href="/pricing" className="underline">{isAr ? 'ترقية' : 'Upgrade'}</a>
                           </p>
                         )}
@@ -721,7 +638,7 @@ export default function DashboardPage() {
                           <div>
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-base font-bold text-neutral-900">
-                                {isAr ? ' أفضل التطابقات' : ' Top Matches'}
+                                {isAr ? '🔥 أفضل التطابقات' : '🔥 Top Matches'}
                               </span>
                               <span className="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full">
                                 {topJobs.length}
@@ -840,18 +757,16 @@ export default function DashboardPage() {
         <ReUploadModal
           lang={lang}
           isLoggedIn={isLoggedIn}
-          initialTab={modalStartTab}
           onClose={() => setIsUploadModalOpen(false)}
           onSuccess={(newProfile) => {
             handleProfileUpdate(newProfile);
             setIsUploadModalOpen(false);
             setJobs([]);
             setHasSearched(false);
-            addToast(isAr ? 'تم تحديث الملف بنجاح ' : 'Profile updated from new CV ');
+            addToast(isAr ? 'تم تحديث الملف بنجاح 🎉' : 'Profile updated from new CV 🎉');
           }}
         />
       )}
-
 
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -919,64 +834,25 @@ function ReUploadModal({
   isLoggedIn,
   onClose,
   onSuccess,
-  initialTab = 'upload',
 }: {
   lang: string;
   isLoggedIn: boolean;
   onClose: () => void;
   onSuccess: (profile: UserProfile) => void;
-  initialTab?: 'upload' | 'manual';
 }) {
-  const isAr    = lang === 'ar';
-  const fileRef = useRef<HTMLInputElement>(null);
+  const isAr      = lang === 'ar';
+  const fileRef   = useRef<HTMLInputElement>(null);
+  const [status,  setStatus]  = useState<'idle' | 'processing' | 'error'>('idle');
+  const [errMsg,  setErrMsg]  = useState('');
 
-  const [tab,     setTab]    = useState<'upload' | 'manual'>(initialTab);
-  const [status,  setStatus] = useState<'idle' | 'processing' | 'error'>('idle');
-  const [errMsg,  setErrMsg] = useState('');
-
-  // Manual form state — persisted across tab switches
-  const [manualName,     setManualName]     = useState('');
-  const [manualRole,     setManualRole]     = useState('');
-  const [manualYears,    setManualYears]    = useState('');
-  const [manualSkills,   setManualSkills]   = useState('');
-  const [manualSummary,  setManualSummary]  = useState('');
-
-  // ── Shared: save profile to DB + sessionStorage ───────────────────────────
-  const saveAndComplete = async (profile: UserProfile, searchKeywords: string[]) => {
-    if (isLoggedIn) {
-      const { createClient: mkClient } = await import('@/lib/supabase');
-      const supabase = mkClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { error: dbError } = await supabase.from('profiles').upsert({
-          user_id:           user.id,
-          email:             user.email ?? null,
-          full_name:         profile.name ?? null,
-          cv_data:           profile,
-          search_keywords:   searchKeywords,
-          updated_at:        new Date().toISOString(),
-          tier:              'free',
-          credits:           0,
-          free_matches_used: 0,
-          last_reset_date:   new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-        if (dbError) {
-          setErrMsg(`DB Error: ${dbError.message}`);
-          setStatus('error');
-          return;
-        }
-      }
-    }
-    sessionStorage.setItem('userProfile', JSON.stringify(profile));
-    onSuccess(profile);
-  };
-
-  // ── Tab 1: PDF Upload ─────────────────────────────────────────────────────
   const processFile = async (file: File) => {
     setStatus('processing');
     setErrMsg('');
     try {
+      // Size guard
       if (file.size > 10 * 1024 * 1024) throw new Error(isAr ? 'الملف كبير جداً (10MB كحد أقصى)' : 'File too large (max 10MB)');
+
+      // Extract text
       let cvText = '';
       if (file.name.toLowerCase().endsWith('.pdf')) {
         const pdfjs = await import('pdfjs-dist/legacy/build/pdf');
@@ -994,7 +870,14 @@ function ReUploadModal({
       } else {
         cvText = await file.text();
       }
-      if (cvText.trim().length < 20) throw new Error(isAr ? 'لم نتمكن من قراءة النص.' : 'Could not read text. Make sure the PDF contains selectable text.');
+
+      if (cvText.trim().length < 20) {
+        throw new Error(isAr
+          ? 'لم نتمكن من قراءة النص. تأكد من أن الملف يحتوي على نص قابل للنسخ.'
+          : 'Could not read text. Make sure the PDF contains selectable text.');
+      }
+
+      // Call extract API
       const res = await fetch('/api/extract-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1002,50 +885,39 @@ function ReUploadModal({
       });
       if (!res.ok) throw new Error(isAr ? 'فشل استخراج الملف' : 'Profile extraction failed');
       const { profile, searchKeywords = [] } = await res.json();
-      await saveAndComplete(profile, searchKeywords);
-    } catch (err: any) {
-      setErrMsg(err.message || (isAr ? 'حدث خطأ' : 'An error occurred'));
-      setStatus('error');
-    }
-  };
 
-  // ── Tab 2: Manual Entry ───────────────────────────────────────────────────
-  const processManual = async () => {
-    // Validate required fields
-    if (!manualRole.trim()) {
-      setErrMsg(isAr ? 'يرجى إدخال المسمى الوظيفي' : 'Please enter your job title / role');
-      setStatus('error');
-      return;
-    }
-    if (!manualSkills.trim()) {
-      setErrMsg(isAr ? 'يرجى إدخال مهاراتك' : 'Please enter your skills');
-      setStatus('error');
-      return;
-    }
-    setStatus('processing');
-    setErrMsg('');
-    try {
-      // Build a CV-like text string
-      const cvText = [
-        manualName    ? `Name: ${manualName}`             : '',
-        manualRole    ? `Current Role: ${manualRole}`     : '',
-        manualYears   ? `Years of Experience: ${manualYears}` : '',
-        manualSkills  ? `Skills: ${manualSkills}`         : '',
-        manualSummary ? `Summary: ${manualSummary}`       : '',
-      ].filter(Boolean).join('\n');
+      // Save to Supabase if logged in
+      if (isLoggedIn) {
+        const { createClient: mkClient } = await import('@/lib/supabase');
+        const supabase = mkClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-      const res = await fetch('/api/extract-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, lang }),
-      });
-      if (!res.ok) throw new Error(isAr ? 'فشل تحليل الملف الشخصي' : 'Profile analysis failed');
-      const { profile, searchKeywords = [] } = await res.json();
+        if (user) {
+          const { error: dbError } = await supabase.from('profiles').upsert({
+            user_id:           user.id,
+            email:             user.email ?? null,
+            full_name:         profile.name ?? null,
+            cv_data:           profile,
+            search_keywords:   searchKeywords, // ← AI-extracted English keywords
+            updated_at:        new Date().toISOString(),
+            tier:              'free',
+            credits:           0,
+            free_matches_used: 0,
+            last_reset_date:   new Date().toISOString(),
+          }, { onConflict: 'user_id' });
 
-      // Preserve manual name if AI didn't extract one
-      if (!profile.name && manualName) profile.name = manualName;
+          if (dbError) {
+            console.error('[CV Upload] DB error:', dbError.message, dbError.code);
+            setErrMsg(`DB Error: ${dbError.message} (code: ${dbError.code})`);
+            setStatus('error');
+            return;
+          }
+        }
+      }
 
-      await saveAndComplete(profile, searchKeywords);
+      // Persist to sessionStorage
+      sessionStorage.setItem('userProfile', JSON.stringify(profile));
+      onSuccess(profile);
     } catch (err: any) {
       setErrMsg(err.message || (isAr ? 'حدث خطأ' : 'An error occurred'));
       setStatus('error');
@@ -1056,205 +928,87 @@ function ReUploadModal({
     const f = e.target.files?.[0];
     if (f) processFile(f);
   };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
     if (f) processFile(f);
   };
 
-  const inp = 'w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all placeholder:text-neutral-400';
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh] overflow-y-auto">
 
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="font-semibold text-neutral-900">
-            {isAr ? 'أنشئ ملفك الشخصي' : 'Create Your Profile'}
-          </h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+              <UploadCloud className="w-4 h-4 text-primary-500" />
+            </div>
+            <h2 className="font-semibold text-neutral-900">
+              {isAr ? 'رفع سيرة ذاتية جديدة' : 'Upload New CV'}
+            </h2>
+          </div>
           <button onClick={onClose} className="p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mx-5 mt-4">
-          <button
-            onClick={() => { setTab('upload'); setStatus('idle'); setErrMsg(''); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === 'upload' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-            }`}
-          >
-            <UploadCloud className="w-3.5 h-3.5" />
-            {isAr ? 'رفع PDF' : 'Upload PDF'}
-          </button>
-          <button
-            onClick={() => { setTab('manual'); setStatus('idle'); setErrMsg(''); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === 'manual' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            {isAr ? 'إدخال يدوي' : 'Manual Entry'}
-          </button>
+        {/* Warning */}
+        <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-100 rounded-xl mb-5">
+          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 leading-relaxed">
+            {isAr
+              ? 'تحذير: رفع ملف جديد سيُستبدل ملفك الشخصي الحالي بما في ذلك أي تعديلات يدوية أجريتها.'
+              : 'Warning: Uploading a new file will overwrite your current profile including any manual edits you have made.'}
+          </p>
         </div>
 
-        <div className="p-5">
-          {/* Processing state */}
-          {status === 'processing' && (
-            <div className="text-center py-10">
-              <Loader2 className="w-10 h-10 text-primary-500 mx-auto mb-3 animate-spin" />
-              <p className="text-sm font-medium text-neutral-700">
-                {isAr ? 'الذكاء الاصطناعي يحلل ملفك...' : 'AI is analysing your profile...'}
-              </p>
-            </div>
-          )}
+        {/* Drop zone */}
+        {status === 'idle' && (
+          <div
+            className="border-2 border-dashed border-neutral-200 hover:border-primary-300 rounded-xl p-8 text-center cursor-pointer transition-colors"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+          >
+            <input ref={fileRef} type="file" accept=".pdf,.txt" onChange={handleFile} className="hidden" />
+            <UploadCloud className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
+            <p className="text-sm font-medium text-neutral-700 mb-1">
+              {isAr ? 'اسحب الملف هنا أو انقر للاختيار' : 'Drag & drop or click to choose'}
+            </p>
+            <p className="text-xs text-neutral-400">PDF · TXT · max 10MB</p>
+          </div>
+        )}
 
-          {/* Error state */}
-          {status === 'error' && (
-            <div className="text-center py-6">
-              <p className="text-sm text-red-600 mb-4">{errMsg}</p>
-              <button
-                onClick={() => { setStatus('idle'); setErrMsg(''); }}
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold rounded-xl transition-colors"
-              >
-                {isAr ? 'حاول مجدداً' : 'Try again'}
-              </button>
-            </div>
-          )}
+        {/* Processing */}
+        {status === 'processing' && (
+          <div className="text-center py-8">
+            <Loader2 className="w-10 h-10 text-primary-500 mx-auto mb-3 animate-spin" />
+            <p className="text-sm font-medium text-neutral-700">
+              {isAr ? 'الذكاء الاصطناعي يحلل سيرتك الذاتية...' : 'AI is analysing your CV...'}
+            </p>
+          </div>
+        )}
 
-          {/* ── Tab 1: Upload ── */}
-          {status === 'idle' && tab === 'upload' && (
-            <>
-              <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-100 rounded-xl mb-4">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  {isAr
-                    ? 'رفع ملف جديد سيُستبدل ملفك الحالي.'
-                    : 'Uploading a new file will overwrite your current profile.'}
-                </p>
-              </div>
-              <div
-                className="border-2 border-dashed border-neutral-200 hover:border-primary-300 rounded-xl p-8 text-center cursor-pointer transition-colors"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                onClick={() => fileRef.current?.click()}
-              >
-                <input ref={fileRef} type="file" accept=".pdf,.txt" onChange={handleFile} className="hidden" />
-                <UploadCloud className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-                <p className="text-sm font-medium text-neutral-700 mb-1">
-                  {isAr ? 'اسحب الملف هنا أو انقر للاختيار' : 'Drag & drop or click to choose'}
-                </p>
-                <p className="text-xs text-neutral-400">PDF · TXT · max 10MB</p>
-              </div>
-            </>
-          )}
-
-          {/* ── Tab 2: Manual Entry ── */}
-          {status === 'idle' && tab === 'manual' && (
-            <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
-              <p className="text-xs text-slate-500">
-                {isAr ? 'لا يوجد CV؟ لا مشكلة — أدخل بياناتك يدوياً.' : "No CV? No problem — fill in your details manually."}
-              </p>
-
-              {/* Full Name */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  {isAr ? 'الاسم الكامل' : 'Full Name'}
-                </label>
-                <input
-                  type="text"
-                  value={manualName}
-                  onChange={e => setManualName(e.target.value)}
-                  placeholder={isAr ? 'مثال: أحمد محمد' : 'e.g. Ahmed Mohammed'}
-                  className={inp}
-                />
-              </div>
-
-              {/* Job Title */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  {isAr ? 'المسمى الوظيفي / الدور الحالي *' : 'Job Title / Current Role *'}
-                </label>
-                <input
-                  type="text"
-                  value={manualRole}
-                  onChange={e => setManualRole(e.target.value)}
-                  placeholder={isAr ? 'مثال: مدير تسويق رقمي' : 'e.g. Senior Marketing Manager'}
-                  className={inp}
-                  required
-                />
-              </div>
-
-              {/* Years of Experience */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  {isAr ? 'سنوات الخبرة' : 'Years of Experience'}
-                </label>
-                <select
-                  value={manualYears}
-                  onChange={e => setManualYears(e.target.value)}
-                  className={inp}
-                >
-                  <option value="">{isAr ? 'اختر...' : 'Select...'}</option>
-                  <option value="Less than 1 year">{isAr ? 'أقل من سنة' : 'Less than 1 year'}</option>
-                  <option value="1-2 years">{isAr ? '1-2 سنة' : '1-2 years'}</option>
-                  <option value="3-5 years">{isAr ? '3-5 سنوات' : '3-5 years'}</option>
-                  <option value="6-10 years">{isAr ? '6-10 سنوات' : '6-10 years'}</option>
-                  <option value="More than 10 years">{isAr ? 'أكثر من 10 سنوات' : 'More than 10 years'}</option>
-                </select>
-              </div>
-
-              {/* Skills */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  {isAr ? 'أبرز المهارات *' : 'Top Skills *'}
-                </label>
-                <textarea
-                  value={manualSkills}
-                  onChange={e => setManualSkills(e.target.value)}
-                  rows={2}
-                  placeholder={isAr ? 'مثال: Python, تسويق رقمي, Excel, إدارة الفرق' : 'e.g. Python, Digital Marketing, Excel, Team Management'}
-                  className={`${inp} resize-none`}
-                  required
-                />
-                <p className="text-[11px] text-neutral-400 mt-1">
-                  {isAr ? 'افصل بين المهارات بفاصلة' : 'Separate skills with commas'}
-                </p>
-              </div>
-
-              {/* Summary */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  {isAr ? 'الملخص المهني' : 'Professional Summary'}
-                </label>
-                <textarea
-                  value={manualSummary}
-                  onChange={e => setManualSummary(e.target.value)}
-                  rows={3}
-                  placeholder={isAr
-                    ? 'أخبرنا عن أهدافك المهنية وخبراتك...'
-                    : 'Tell us about your career goals and expertise...'}
-                  className={`${inp} resize-none`}
-                />
-              </div>
-
-              {/* Analyze button */}
-              <button
-                onClick={processManual}
-                className="w-full py-3 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm mt-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                {isAr ? 'تحليل وبدء المطابقة' : 'Analyze & Start Matching'}
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Error */}
+        {status === 'error' && (
+          <div className="text-center py-6">
+            <p className="text-sm text-red-600 mb-4">{errMsg}</p>
+            <button
+              onClick={() => { setStatus('idle'); setErrMsg(''); }}
+              className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              {isAr ? 'حاول مجدداً' : 'Try again'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1263,15 +1017,15 @@ function MatchingAnimation({ isAr }: { isAr: boolean }) {
   const [step, setStep] = React.useState(0);
 
   const steps = isAr ? [
-    { icon: '', text: 'نبحث في أسواق الشرق الأوسط...' },
-    { icon: '', text: 'الذكاء الاصطناعي يحلل تطابقك مع كل وظيفة...' },
-    { icon: '', text: 'نرتب أفضل 20 نتيجة لك...' },
-    { icon: '', text: 'لمسات أخيرة على التحليل...' },
+    { icon: '🌍', text: 'نبحث في أسواق الشرق الأوسط...' },
+    { icon: '🤖', text: 'الذكاء الاصطناعي يحلل تطابقك مع كل وظيفة...' },
+    { icon: '🔥', text: 'نرتب أفضل 20 نتيجة لك...' },
+    { icon: '✨', text: 'لمسات أخيرة على التحليل...' },
   ] : [
-    { icon: '', text: 'Searching markets in UAE, Saudi Arabia, Kuwait...' },
-    { icon: '', text: 'AI is analysing matches with your CV...' },
-    { icon: '', text: 'Sorting your top 20 matches...' },
-    { icon: '', text: 'Final touches on the analysis...' },
+    { icon: '🌍', text: 'Searching markets in UAE, Saudi Arabia, Kuwait...' },
+    { icon: '🤖', text: 'AI is analysing matches with your CV...' },
+    { icon: '🔥', text: 'Sorting your top 20 matches...' },
+    { icon: '✨', text: 'Final touches on the analysis...' },
   ];
 
   React.useEffect(() => {
@@ -1347,7 +1101,7 @@ function PaywallModal({ isAr, onClose }: { isAr: boolean; onClose: () => void })
             href="/pricing"
             className="block w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all text-sm"
           >
-            {isAr ? 'شراء رصيد — 5$ لـ 25 مطابقة' : 'Buy Credits — $5 for 25 matches'}
+            {isAr ? 'شراء رصيد — 10$ لـ 50 مطابقة' : 'Buy Credits — $10 for 50 matches'}
           </a>
           <button
             onClick={onClose}
