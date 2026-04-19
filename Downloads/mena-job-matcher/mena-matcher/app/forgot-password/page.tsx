@@ -20,13 +20,32 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/reset-password`;
+      const supabase  = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?type=recovery`;
+
+      console.log('[forgot-password] Sending reset email to:', email);
+      console.log('[forgot-password] redirectTo:', redirectTo);
+
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      if (err) throw err;
+
+      if (err) {
+        console.error('[forgot-password] Supabase error:', {
+          message: err.message,
+          status:  err.status,
+          name:    err.name,
+        });
+        throw err;
+      }
+
+      console.log('[forgot-password] Email sent successfully');
       setSent(true);
     } catch (err: any) {
-      setError(err.message || (isAr ? 'حدث خطأ، حاول مجدداً' : 'Something went wrong, please try again'));
+      const isRateLimit = err?.status === 429 || err?.message?.toLowerCase().includes('rate');
+      setError(
+        isRateLimit
+          ? (isAr ? 'تم تجاوز الحد المسموح. انتظر ساعة وحاول مجدداً.' : 'Rate limit reached. Please wait 1 hour and try again.')
+          : (err.message || (isAr ? 'حدث خطأ، حاول مجدداً' : 'Something went wrong, please try again'))
+      );
     } finally {
       setLoading(false);
     }
