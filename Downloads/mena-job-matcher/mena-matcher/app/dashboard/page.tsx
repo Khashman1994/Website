@@ -498,9 +498,16 @@ export default function DashboardPage() {
                   </span>
                 )}
                 {userTier !== 'pro' && (
-                  <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded-full">
-                     {userCredits} {isAr ? 'رصيد' : 'credits'}
-                  </span>
+                  <a
+                    href="/pricing"
+                    title={isAr ? 'شراء المزيد من الرصيد' : 'Buy more credits'}
+                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-full cursor-pointer transition-colors flex items-center gap-1"
+                  >
+                    ⚡ {userCredits} {isAr ? 'رصيد' : 'credits'}
+                    <span className="ml-1 opacity-80 text-[10px] uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded-full">
+                      {isAr ? 'شراء' : 'Buy'}
+                    </span>
+                  </a>
                 )}
                 {userTier === 'free' && userCredits === 0 && matchesLeft !== null && (
                   <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
