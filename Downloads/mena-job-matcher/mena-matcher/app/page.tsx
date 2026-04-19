@@ -1,12 +1,13 @@
 'use client';
 // app/page.tsx — High-End Landing Page
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, Sparkles, Brain, Target, Zap,
   CheckCircle2, Users, MapPin, Star, Upload,
+  X, UploadCloud, AlertTriangle, Loader2,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -14,6 +15,7 @@ import { FileUpload } from '@/components/landing/FileUpload';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { createClient } from '@/lib/supabase';
+import { UserProfile } from '@/lib/types';
 
 // ── Animation variants ────────────────────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
@@ -157,6 +159,9 @@ export default function LandingPage() {
   const router   = useRouter();
   const isAr     = lang === 'ar';
 
+  const [isModalOpen,   setIsModalOpen]   = useState(false);
+  const [modalStartTab, setModalStartTab] = useState<'upload' | 'manual'>('upload');
+
   // Redirect all logged-in users to dashboard (empty state handled there)
   useEffect(() => {
     async function check() {
@@ -269,12 +274,19 @@ export default function LandingPage() {
                   {isAr ? 'ابدأ مجاناً' : 'Get Started — Free'}
                   <ArrowRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
                 </Link>
-                <Link
-                  href="#upload"
+                <button
+                  onClick={() => { setModalStartTab('upload'); setIsModalOpen(true); }}
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-slate-200 text-slate-700 hover:border-primary-300 hover:text-primary-600 font-semibold rounded-full transition-all"
                 >
+                  <Upload className="w-4 h-4" />
                   {isAr ? 'ارفع سيرتك الآن' : 'Upload CV Now'}
-                </Link>
+                </button>
+                <button
+                  onClick={() => { setModalStartTab('manual'); setIsModalOpen(true); }}
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-orange-200 text-orange-600 hover:bg-orange-50 font-semibold rounded-full transition-all"
+                >
+                  ✍️ {isAr ? 'إدخال يدوي' : 'Manual Entry'}
+                </button>
               </motion.div>
 
               {/* Trust signals */}
@@ -422,6 +434,236 @@ export default function LandingPage() {
       </section>
 
       <Footer />
+
+      {/* Guest Modal — works before login */}
+      {isModalOpen && (
+        <GuestModal
+          lang={lang}
+          initialTab={modalStartTab}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => router.push('/signup')}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Guest Modal — allows form fill before signup ──────────────────────────────
+function GuestModal({
+  lang, initialTab, onClose, onSuccess,
+}: {
+  lang: string;
+  initialTab: 'upload' | 'manual';
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const isAr   = lang === 'ar';
+  const fileRef = useRef<HTMLInputElement>(null);
+  const router  = useRouter();
+
+  const [tab,    setTab]    = useState<'upload' | 'manual'>(initialTab);
+  const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
+  const [errMsg, setErrMsg] = useState('');
+
+  // Manual form fields
+  const [name,    setName]    = useState('');
+  const [role,    setRole]    = useState('');
+  const [years,   setYears]   = useState('');
+  const [skills,  setSkills]  = useState('');
+  const [summary, setSummary] = useState('');
+
+  const inp = 'w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-neutral-400';
+
+  // ── Shared: call extract API then save to sessionStorage → redirect to signup
+  const processText = async (cvText: string) => {
+    setStatus('processing');
+    setErrMsg('');
+    try {
+      const res = await fetch('/api/extract-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvText, lang }),
+      });
+      if (!res.ok) throw new Error(isAr ? 'فشل التحليل' : 'Analysis failed');
+      const { profile } = await res.json();
+      if (!profile.name && name) profile.name = name;
+      // Save to sessionStorage so dashboard picks it up after signup
+      sessionStorage.setItem('userProfile', JSON.stringify(profile));
+      setStatus('done');
+      setTimeout(() => { onClose(); router.push('/signup'); }, 1000);
+    } catch (err: any) {
+      setErrMsg(err.message || (isAr ? 'حدث خطأ' : 'An error occurred'));
+      setStatus('error');
+    }
+  };
+
+  // ── PDF Upload ────────────────────────────────────────────────────────────
+  const processFile = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) { setErrMsg(isAr ? 'الملف كبير جداً' : 'File too large (max 10MB)'); setStatus('error'); return; }
+    setStatus('processing');
+    try {
+      let cvText = '';
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf');
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((item: any) => item.str ?? '').join(' '));
+        }
+        cvText = pages.join('\n');
+      } else {
+        cvText = await file.text();
+      }
+      if (cvText.trim().length < 20) throw new Error(isAr ? 'لم نتمكن من قراءة النص' : 'Could not read text from file');
+      await processText(cvText.trim());
+    } catch (err: any) {
+      setErrMsg(err.message || (isAr ? 'حدث خطأ' : 'An error occurred'));
+      setStatus('error');
+    }
+  };
+
+  // ── Manual Submit ─────────────────────────────────────────────────────────
+  const processManual = async () => {
+    if (!role.trim()) { setErrMsg(isAr ? 'يرجى إدخال المسمى الوظيفي' : 'Please enter your job title'); setStatus('error'); return; }
+    if (!skills.trim()) { setErrMsg(isAr ? 'يرجى إدخال مهاراتك' : 'Please enter your skills'); setStatus('error'); return; }
+    const cvText = [
+      name    ? `Name: ${name}`                 : '',
+      role    ? `Current Role: ${role}`         : '',
+      years   ? `Years of Experience: ${years}` : '',
+      skills  ? `Skills: ${skills}`             : '',
+      summary ? `Summary: ${summary}`           : '',
+    ].filter(Boolean).join('\n');
+    await processText(cvText);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh] overflow-y-auto">
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div>
+            <h2 className="font-semibold text-neutral-900">
+              {isAr ? 'ابدأ المطابقة الآن' : 'Start Matching Now'}
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isAr ? 'سنحفظ بياناتك عند إنشاء الحساب' : 'We\'ll save your data when you sign up'}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mx-5 mt-4">
+          {(['upload', 'manual'] as const).map(t => (
+            <button key={t} onClick={() => { setTab(t); setStatus('idle'); setErrMsg(''); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${tab === t ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`}>
+              {t === 'upload' ? <><UploadCloud className="w-3.5 h-3.5" />{isAr ? 'رفع PDF' : 'Upload PDF'}</> : <>✍️ {isAr ? 'إدخال يدوي' : 'Manual Entry'}</>}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-5">
+          {/* Processing */}
+          {status === 'processing' && (
+            <div className="text-center py-10">
+              <Loader2 className="w-10 h-10 text-orange-500 mx-auto mb-3 animate-spin" />
+              <p className="text-sm font-medium text-neutral-700">{isAr ? 'الذكاء الاصطناعي يحلل ملفك...' : 'AI is analysing your profile...'}</p>
+            </div>
+          )}
+
+          {/* Done */}
+          {status === 'done' && (
+            <div className="text-center py-10">
+              <div className="text-5xl mb-3">🎉</div>
+              <p className="font-semibold text-slate-800">{isAr ? 'تم! جارٍ التوجيه للتسجيل...' : 'Done! Redirecting to sign up...'}</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {status === 'error' && (
+            <div className="text-center py-6">
+              <p className="text-sm text-red-600 mb-4">{errMsg}</p>
+              <button onClick={() => { setStatus('idle'); setErrMsg(''); }}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                {isAr ? 'حاول مجدداً' : 'Try again'}
+              </button>
+            </div>
+          )}
+
+          {/* Upload Tab */}
+          {status === 'idle' && tab === 'upload' && (
+            <>
+              <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-4">
+                <Sparkles className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700">{isAr ? 'سنحلل سيرتك ونحفظها عند إنشاء حسابك.' : 'We\'ll analyse your CV and save it when you create your account.'}</p>
+              </div>
+              <div className="border-2 border-dashed border-neutral-200 hover:border-orange-300 rounded-xl p-8 text-center cursor-pointer transition-colors"
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }}
+                onClick={() => fileRef.current?.click()}>
+                <input ref={fileRef} type="file" accept=".pdf,.txt" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }} />
+                <UploadCloud className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
+                <p className="text-sm font-medium text-neutral-700 mb-1">{isAr ? 'اسحب أو انقر للاختيار' : 'Drag & drop or click to choose'}</p>
+                <p className="text-xs text-neutral-400">PDF · TXT · max 10MB</p>
+              </div>
+            </>
+          )}
+
+          {/* Manual Tab */}
+          {status === 'idle' && tab === 'manual' && (
+            <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
+              <p className="text-xs text-slate-400">{isAr ? 'لا يوجد CV؟ أدخل بياناتك ثم أنشئ حسابك.' : "No CV? Fill in your details then create your account."}</p>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{isAr ? 'الاسم' : 'Full Name'}</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={isAr ? 'اسمك الكامل' : 'Your full name'} className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{isAr ? 'المسمى الوظيفي *' : 'Job Title *'}</label>
+                <input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder={isAr ? 'مثال: مهندس برمجيات' : 'e.g. Software Engineer'} className={inp} required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{isAr ? 'سنوات الخبرة' : 'Experience'}</label>
+                <select value={years} onChange={e => setYears(e.target.value)} className={inp}>
+                  <option value="">{isAr ? 'اختر...' : 'Select...'}</option>
+                  <option value="Less than 1 year">{isAr ? 'أقل من سنة' : 'Less than 1 year'}</option>
+                  <option value="1-2 years">{isAr ? '1-2 سنة' : '1-2 years'}</option>
+                  <option value="3-5 years">{isAr ? '3-5 سنوات' : '3-5 years'}</option>
+                  <option value="6-10 years">{isAr ? '6-10 سنوات' : '6-10 years'}</option>
+                  <option value="More than 10 years">{isAr ? 'أكثر من 10 سنوات' : '10+ years'}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{isAr ? 'المهارات *' : 'Skills *'}</label>
+                <textarea value={skills} onChange={e => setSkills(e.target.value)} rows={2}
+                  placeholder={isAr ? 'مثال: Python, إدارة المشاريع, Excel' : 'e.g. Python, Project Management, Excel'}
+                  className={`${inp} resize-none`} required />
+                <p className="text-[11px] text-neutral-400 mt-1">{isAr ? 'افصل بفاصلة' : 'Separate with commas'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">{isAr ? 'الملخص المهني' : 'Summary'}</label>
+                <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={3}
+                  placeholder={isAr ? 'أهدافك وخبراتك...' : 'Your goals and expertise...'}
+                  className={`${inp} resize-none`} />
+              </div>
+              {errMsg && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{errMsg}</p>}
+              <button onClick={processManual}
+                className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-200">
+                <Sparkles className="w-4 h-4" />
+                {isAr ? 'تحليل وإنشاء حساب' : 'Analyze & Create Account'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
