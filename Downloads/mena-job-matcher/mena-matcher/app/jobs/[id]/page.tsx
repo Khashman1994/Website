@@ -5,12 +5,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Building2, ExternalLink, ArrowLeft, Briefcase } from 'lucide-react';
 
-// ISR: revalidate every 24 hours — Google sees fresh content
-export const revalidate = 86400;
-
-// Tell Next.js to generate pages on-demand for unknown IDs (new jobs)
-export const dynamicParams = true;
-
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL
               ?? process.env.NEXT_PUBLIC_APP_URL
               ?? 'https://www.menajob-ai.com';
@@ -38,7 +32,7 @@ async function getJob(id: string) {
 export async function generateMetadata(
   { params }: { params: { id: string } }
 ): Promise<Metadata> {
-  const job = await getJob(decodeURIComponent(params.id));
+  const job = await getJob(params.id);
 
   if (!job) {
     return {
@@ -83,91 +77,17 @@ export async function generateMetadata(
   };
 }
 
-// ── Employment type mapper ────────────────────────────────────────────────────
-function toSchemaEmploymentType(type?: string): string {
-  const map: Record<string, string> = {
-    'full-time':  'FULL_TIME',
-    'fulltime':   'FULL_TIME',
-    'part-time':  'PART_TIME',
-    'parttime':   'PART_TIME',
-    'contract':   'CONTRACTOR',
-    'contractor': 'CONTRACTOR',
-    'freelance':  'CONTRACTOR',
-    'temporary':  'TEMPORARY',
-    'intern':     'INTERN',
-    'volunteer':  'VOLUNTEER',
-  };
-  return map[type?.toLowerCase() ?? ''] ?? 'FULL_TIME';
-}
-
 // ── Page Component ────────────────────────────────────────────────────────────
 export default async function JobPage({ params }: { params: { id: string } }) {
-  const job = await getJob(decodeURIComponent(params.id));
+  const job = await getJob(params.id);
   if (!job) notFound();
 
   const salary = job.salary_min
     ? `${job.salary_min.toLocaleString()} – ${job.salary_max?.toLocaleString()} ${job.salary_currency ?? ''}`
     : null;
 
-  // ── JSON-LD: Schema.org JobPosting ────────────────────────────────────────
-  const jsonLd = {
-    '@context':       'https://schema.org',
-    '@type':          'JobPosting',
-    title:            job.title,
-    description:      job.description ?? job.title,
-    datePosted:       job.posted_at
-                        ? new Date(job.posted_at).toISOString().split('T')[0]
-                        : new Date().toISOString().split('T')[0],
-    validThrough:     new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    employmentType:   toSchemaEmploymentType(job.employment_type),
-    jobLocationType:  job.remote ? 'TELECOMMUTE' : undefined,
-    url:              `${BASE_URL}/jobs/${job.id}`,
-    hiringOrganization: {
-      '@type': 'Organization',
-      name:    job.company,
-    },
-    jobLocation: {
-      '@type':  'Place',
-      address: {
-        '@type':           'PostalAddress',
-        addressLocality:   job.location?.split(',')[0]?.trim() ?? job.location,
-        addressCountry:    (() => {
-                             const loc = job.location?.toLowerCase() ?? '';
-                             if (loc.includes('uae') || loc.includes('dubai') || loc.includes('abu dhabi') || loc.includes('sharjah')) return 'AE';
-                             if (loc.includes('saudi') || loc.includes('riyadh') || loc.includes('jeddah') || loc.includes('ksa')) return 'SA';
-                             if (loc.includes('kuwait')) return 'KW';
-                             if (loc.includes('qatar') || loc.includes('doha')) return 'QA';
-                             if (loc.includes('egypt') || loc.includes('cairo')) return 'EG';
-                             if (loc.includes('jordan') || loc.includes('amman')) return 'JO';
-                             if (loc.includes('bahrain') || loc.includes('manama')) return 'BH';
-                             if (loc.includes('oman') || loc.includes('muscat')) return 'OM';
-                             if (loc.includes('lebanon') || loc.includes('beirut')) return 'LB';
-                             if (loc.includes('morocco') || loc.includes('casablanca')) return 'MA';
-                             return 'AE';
-                           })(),
-      },
-    },
-    ...(job.salary_min && {
-      baseSalary: {
-        '@type':    'MonetaryAmount',
-        currency:   job.salary_currency ?? 'USD',
-        value: {
-          '@type':    'QuantitativeValue',
-          minValue:   job.salary_min,
-          maxValue:   job.salary_max ?? job.salary_min,
-          unitText:   'MONTH',
-        },
-      },
-    }),
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* JSON-LD Structured Data for Google Jobs */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 px-4">
         <div className="max-w-3xl mx-auto">
