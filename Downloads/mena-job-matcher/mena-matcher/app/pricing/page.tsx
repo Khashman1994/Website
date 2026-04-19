@@ -26,22 +26,42 @@ const PLANS = [
     disabled: true,
   },
   {
+    id:       'coins_25',
+    icon:     Zap,
+    color:    'orange',
+    badge:    'BEST VALUE',
+    priceUSD: 4.99,
+    priceAR:  '$4.99',
+    titleEN:  'Starter Pack',
+    titleAR:  'باقة المبتدئين',
+    descEN:   '25 Stars — unlock 25 jobs instantly',
+    descAR:   '25 نجمة — افتح 25 وظيفة فوراً',
+    features: {
+      en: ['25 AI match stars','Unlock 25 job details','Full AI analysis per job','Credits never expire'],
+      ar: ['25 نجمة للمطابقة','فتح 25 وظيفة كاملة','تحليل ذكاء اصطناعي لكل وظيفة','الأرصدة لا تنتهي'],
+    },
+    ctaEN:    'Get 25 Stars — $4.99',
+    ctaAR:    'احصل على 25 نجمة — $4.99',
+    planId:   'coins_25',
+    disabled: false,
+  },
+  {
     id:       'coins_50',
     icon:     Zap,
     color:    'orange',
     badge:    'POPULAR',
-    priceUSD: 10,
-    priceAR:  '37 ر.س',
-    titleEN:  'Pay as You Go',
-    titleAR:  'ادفع حسب الاستخدام',
-    descEN:   '50 AI matches, never expire',
-    descAR:   '50 مطابقة ذكاء اصطناعي، لا تنتهي',
+    priceUSD: 9.99,
+    priceAR:  '$9.99',
+    titleEN:  'Value Pack',
+    titleAR:  'باقة القيمة',
+    descEN:   '50 Stars — best value per star',
+    descAR:   '50 نجمة — أفضل قيمة للنجمة',
     features: {
-      en: ['50 AI match credits','Credits never expire','Priority job alerts','Detailed match insights'],
-      ar: ['50 رصيد مطابقة ذكاء اصطناعي','الأرصدة لا تنتهي','تنبيهات وظيفية ذات أولوية','تحليل تفصيلي للمطابقة'],
+      en: ['50 AI match stars','Unlock 50 job details','Full AI analysis per job','Credits never expire'],
+      ar: ['50 نجمة للمطابقة','فتح 50 وظيفة كاملة','تحليل ذكاء اصطناعي لكل وظيفة','الأرصدة لا تنتهي'],
     },
-    ctaEN:    'Buy 50 Credits — $10',
-    ctaAR:    'اشترِ 50 رصيداً — 37 ر.س',
+    ctaEN:    'Get 50 Stars — $9.99',
+    ctaAR:    'احصل على 50 نجمة — $9.99',
     planId:   'coins_50',
     disabled: false,
   },
@@ -51,7 +71,7 @@ const PLANS = [
     color:    'violet',
     badge:    'BEST VALUE',
     priceUSD: 19.99,
-    priceAR:  '71 ر.س',
+    priceAR:  '$19.99',
     titleEN:  'Pro',
     titleAR:  'برو',
     descEN:   '500 Stars/month · Full AI analysis',
@@ -60,17 +80,18 @@ const PLANS = [
       en: ['500 Stars per month (renews monthly)','Priority email alerts','Early access to new jobs','Export matches to PDF','Dedicated support'],
       ar: ['500 نجمة شهرياً (تتجدد كل شهر)','تنبيهات بريد إلكتروني ذات أولوية','وصول مبكر للوظائف الجديدة','تصدير المطابقات PDF','دعم متخصص'],
     },
-    ctaEN:    'Start Unlimited — $19/mo',
-    ctaAR:    'اشترك في برو — 75 ر.س/شهر',
+    ctaEN:    'Get Pro — $19.99/mo',
+    ctaAR:    'اشترك في برو — $19.99/شهر',
     planId:   'pro_monthly',
     disabled: false,
   },
 ];
 
 const COLOR_MAP: Record<string, Record<string, string>> = {
-  slate:  { bg:'bg-slate-50',  border:'border-slate-200', icon:'text-slate-500',  btn:'bg-slate-200 text-slate-600 cursor-default', badge:'bg-slate-100 text-slate-500' },
-  orange: { bg:'bg-orange-50', border:'border-orange-400 ring-2 ring-orange-300', icon:'text-orange-500', btn:'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200', badge:'bg-orange-500 text-white' },
-  violet: { bg:'bg-violet-50', border:'border-violet-300', icon:'text-violet-500', btn:'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200', badge:'bg-violet-600 text-white' },
+  slate:   { bg:'bg-slate-50',   border:'border-slate-200',  icon:'text-slate-500',  btn:'bg-slate-200 text-slate-600 cursor-default',                           badge:'bg-slate-100 text-slate-500'  },
+  emerald: { bg:'bg-emerald-50', border:'border-emerald-300', icon:'text-emerald-500', btn:'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200', badge:'bg-emerald-500 text-white' },
+  orange:  { bg:'bg-orange-50',  border:'border-orange-400 ring-2 ring-orange-300', icon:'text-orange-500', btn:'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200',   badge:'bg-orange-500 text-white'  },
+  violet:  { bg:'bg-violet-50',  border:'border-violet-300', icon:'text-violet-500', btn:'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200',   badge:'bg-violet-600 text-white'  },
 };
 
 export default function PricingPage() {
@@ -88,11 +109,28 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       });
-      const { paymentUrl, error } = await res.json();
-      if (error) { alert(error); return; }
-      if (paymentUrl) window.location.href = paymentUrl; // redirect to MyFatoorah
-    } catch {
-      alert(isAr ? 'فشل في إنشاء الدفع' : 'Payment creation failed. Please try again.');
+
+      const json = await res.json();
+      console.log('[payment] Response:', json);
+
+      if (!res.ok || json.error) {
+        const errMsg = json.error ?? `HTTP ${res.status}`;
+        const validationInfo = json.validationErrors
+          ? '\n' + JSON.stringify(json.validationErrors)
+          : '';
+        alert(`Payment error: ${errMsg}${validationInfo}`);
+        return;
+      }
+
+      if (json.paymentUrl) {
+        window.location.href = json.paymentUrl;
+      } else {
+        alert('No payment URL returned. Check console.');
+        console.error('[payment] Full response:', json);
+      }
+    } catch (err: any) {
+      alert(`Network error: ${err.message}`);
+      console.error('[payment] Fetch error:', err);
     } finally {
       setLoading(null);
     }
