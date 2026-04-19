@@ -485,10 +485,15 @@ function GuestModal({
         body: JSON.stringify({ cvText, lang }),
       });
       if (!res.ok) throw new Error(isAr ? 'فشل التحليل' : 'Analysis failed');
-      const { profile } = await res.json();
+      const { profile, searchKeywords = [] } = await res.json();
       if (!profile.name && name) profile.name = name;
-      // Save to sessionStorage so dashboard picks it up after signup
-      sessionStorage.setItem('userProfile', JSON.stringify(profile));
+
+      // Save to BOTH storages — localStorage survives auth redirects
+      const payload = JSON.stringify(profile);
+      try { sessionStorage.setItem('userProfile', payload); } catch {}
+      try { localStorage.setItem('pending_guest_profile', payload); } catch {}
+      try { localStorage.setItem('pending_guest_keywords', JSON.stringify(searchKeywords)); } catch {}
+
       setStatus('done');
       setTimeout(() => { onClose(); router.push('/signup'); }, 1000);
     } catch (err: any) {

@@ -120,9 +120,49 @@ export default function DashboardPage() {
             setProfile(dbProfile);
             sessionStorage.setItem('userProfile', JSON.stringify(dbProfile));
           } else {
-            const cached = sessionStorage.getItem('userProfile');
-            if (cached) {
-              try { setProfile(JSON.parse(cached)); } catch {}
+            // ── Guest handoff: check localStorage first (survives auth redirects)
+            const pendingGuest = localStorage.getItem('pending_guest_profile');
+            if (pendingGuest) {
+              try {
+                const guestProfile = JSON.parse(pendingGuest);
+                const guestKeywords = (() => {
+                  try { return JSON.parse(localStorage.getItem('pending_guest_keywords') ?? '[]'); } catch { return []; }
+                })();
+
+                // Save to Supabase now that user is authenticated
+                const supabase = createClient();
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+                if (authUser) {
+                  await supabase.from('profiles').upsert({
+                    user_id:           authUser.id,
+                    email:             authUser.email ?? null,
+                    full_name:         guestProfile.name ?? null,
+                    cv_data:           guestProfile,
+                    search_keywords:   guestKeywords,
+                    updated_at:        new Date().toISOString(),
+                    tier:              'free',
+                    credits:           0,
+                    free_matches_used: 0,
+                    last_reset_date:   new Date().toISOString(),
+                  }, { onConflict: 'user_id' });
+                }
+
+                setProfile(guestProfile);
+                sessionStorage.setItem('userProfile', pendingGuest);
+                // Clean up — profile is now in DB
+                localStorage.removeItem('pending_guest_profile');
+                localStorage.removeItem('pending_guest_keywords');
+                console.log('[dashboard] Guest profile hydrated from localStorage');
+              } catch (e) {
+                console.error('[dashboard] Failed to hydrate guest profile:', e);
+                localStorage.removeItem('pending_guest_profile');
+              }
+            } else {
+              // Fallback to sessionStorage
+              const cached = sessionStorage.getItem('userProfile');
+              if (cached) {
+                try { setProfile(JSON.parse(cached)); } catch {}
+              }
             }
           }
 
