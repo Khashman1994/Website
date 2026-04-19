@@ -58,31 +58,41 @@ export default function DashboardPage() {
   // ── Payment return handler ────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const params  = new URLSearchParams(window.location.search);
-    const payment = params.get('payment');
-    const credits = params.get('credits');
+    const params   = new URLSearchParams(window.location.search);
+    const payment  = params.get('payment');
+    const credits  = params.get('credits');
     const upgraded = params.get('upgraded');
 
     if (!payment && !upgraded) return;
 
-    // Small delay so the dashboard finishes mounting before showing toast
+    // Delay so dashboard finishes mounting + credits reload from DB
     const timer = setTimeout(() => {
       if (payment === 'success') {
         const msg = credits
-          ? ` ${lang === 'ar' ? `تم إضافة ${credits} نجمة لحسابك!` : `${credits} Stars added to your account!`}`
-          : ` ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح!' : 'Plan activated successfully!'}`;
+          ? `Payment successful! ${credits} Stars added to your account!`
+          : `Plan activated successfully!`;
         addToast(msg);
         if (credits) setUserCredits(prev => prev + Number(credits));
+        // Reload profile from DB to show updated credits
+        createClient().from('profiles')
+          .select('credits, tier, free_matches_used')
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              setUserCredits(data.credits ?? 0);
+              setUserTier(data.tier ?? 'free');
+            }
+          }).catch(() => {});
       } else if (payment === 'failed') {
-        addToast(` ${lang === 'ar' ? 'فشلت عملية الدفع. يرجى المحاولة مجدداً.' : 'Payment failed. Please try again.'}`);
+        addToast('Payment failed. Please try again.');
       } else if (upgraded === 'true') {
-        addToast(` ${lang === 'ar' ? 'تم تفعيل الخطة بنجاح! 500 نجمة أضيفت لحسابك' : 'Pro plan activated! 500 Stars added to your account.'}`);
+        addToast('Pro plan activated! 500 Stars added to your account.');
       }
       window.history.replaceState({}, '', '/dashboard');
-    }, 1500); // wait 1.5s for init to complete
+    }, 2000); // 2s — enough for DB write + page hydration
 
     return () => clearTimeout(timer);
-  }, [lang]); // lang dependency ensures correct translation
+  }, [lang]);
   useEffect(() => {
     async function init() {
       try {
