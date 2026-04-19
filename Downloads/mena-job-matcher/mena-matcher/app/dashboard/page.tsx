@@ -1347,7 +1347,7 @@ function PaywallModal({ isAr, onClose }: { isAr: boolean; onClose: () => void })
             href="/pricing"
             className="block w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all text-sm"
           >
-            {isAr ? 'شراء رصيد — 5$ لـ 25 مطابقة' : 'Buy Credits — $5 for 25 matches'}
+            {isAr ? 'شراء رصيد — 4.99$ لـ 25 نجمة' : 'Buy Credits — $4.99 for 25 Stars'}
           </a>
           <button
             onClick={onClose}
