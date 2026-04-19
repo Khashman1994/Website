@@ -2,6 +2,7 @@
 // app/dashboard/page.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { SessionTimeout } from '@/components/SessionTimeout';
 import { ProfileCard } from '@/components/dashboard/ProfileCard';
 import { JobCard } from '@/components/dashboard/JobCard';
@@ -10,7 +11,7 @@ import { ChatAssistant } from '@/components/dashboard/ChatAssistant';
 import { Button } from '@/components/ui/Button';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { UserProfile, JobMatch, JobFilters } from '@/lib/types';
-import { Search, Loader2, AlertCircle, LogOut, Upload, Sparkles, X, UploadCloud, AlertTriangle, Heart } from 'lucide-react';
+import { Search, Loader2, AlertCircle, LogOut, Upload, Sparkles, X, UploadCloud, AlertTriangle, Heart, Home } from 'lucide-react';
 import { JobListSkeleton } from '@/components/dashboard/SkeletonLoader';
 import { ToastContainer } from '@/components/ui/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -878,14 +879,16 @@ function PageHeader({ userEmail, isLoggedIn, onSignOut, lang, t }: {
     <header className="bg-white border-b border-neutral-200 sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          {/* Logo — clickable home link */}
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-semibold text-neutral-900 text-sm hidden sm:block">
               {isAr ? 'مطابق الوظائف' : 'MENA Jobs'}
             </span>
-          </div>
+          </Link>
+
           <div className="flex items-center gap-3">
             {userEmail && (
               <span className="hidden sm:block text-xs text-neutral-400 max-w-[160px] truncate">
@@ -896,6 +899,15 @@ function PageHeader({ userEmail, isLoggedIn, onSignOut, lang, t }: {
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               {t.aiActive}
             </div>
+            {/* Home button */}
+            <Link
+              href="/"
+              title={isAr ? 'الرئيسية' : 'Home'}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors text-xs font-medium"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span className="hidden sm:block">{isAr ? 'الرئيسية' : 'Home'}</span>
+            </Link>
             <LanguageSwitcher />
             {isLoggedIn && (
               <button
