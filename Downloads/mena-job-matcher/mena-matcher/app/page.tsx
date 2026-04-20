@@ -13,6 +13,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { FileUpload } from '@/components/landing/FileUpload';
 import { HowItWorks } from '@/components/landing/HowItWorks';
+import { InstagramSection } from '@/components/landing/InstagramSection';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { createClient } from '@/lib/supabase';
 import { UserProfile } from '@/lib/types';
@@ -433,6 +434,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <InstagramSection />
       <Footer />
 
       {/* Guest Modal — works before login */}
