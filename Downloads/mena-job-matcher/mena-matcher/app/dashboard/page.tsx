@@ -18,6 +18,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
 import { createClient, loadProfile, saveProfile, loadSavedJobs, loadSavedJobIds } from '@/lib/supabase';
+import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 
 type Tab = 'all' | 'saved';
 
@@ -485,6 +486,7 @@ export default function DashboardPage() {
   return (
     <div>
     <SessionTimeout />
+    <OnboardingTour isLoggedIn={isLoggedIn} />
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <PageHeader userEmail={userEmail} isLoggedIn={isLoggedIn} onSignOut={handleSignOut} lang={lang} t={t} />
 
@@ -542,7 +544,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-5">
+          <div id="tour-profile" className="lg:col-span-1 space-y-5">
             <ProfileCard
               profile={profile}
               onProfileUpdate={handleProfileUpdate}
@@ -621,7 +623,9 @@ export default function DashboardPage() {
 
           {/* Main */}
           <div className="lg:col-span-2 space-y-5">
+            <div id="tour-search">
             <FilterPanel onApplyFilters={handleSearchJobs} isLoading={isLoadingJobs} />
+            </div>
 
             {/* Tab switcher — only shown after first search or if logged in */}
             {(hasSearched || isLoggedIn) && (
@@ -700,7 +704,7 @@ export default function DashboardPage() {
 
                 {/* Results */}
                 {!isLoadingJobs && !error && jobs.length > 0 && (
-                  <div className="space-y-6">
+                  <div id="tour-results" className="space-y-6">
                     {/* Stats bar */}
                     <div className="flex items-center justify-between px-1">
                       <p className="text-sm text-neutral-600">
