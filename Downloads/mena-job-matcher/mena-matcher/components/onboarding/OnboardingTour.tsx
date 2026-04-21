@@ -1,9 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { useLang } from '@/lib/i18n/LanguageContext';
 
 const TOUR_KEY = 'menajob_tour_done';
+
+type Step = {
+  target: string;
+  title: string;
+  content: string;
+  placement?: 'top' | 'bottom' | 'left' | 'right';
+};
 
 const STEPS_EN: Step[] = [
   {
@@ -11,21 +17,18 @@ const STEPS_EN: Step[] = [
     title:     '👋 Welcome to MenaJob AI!',
     content:   'Start by filling out your Smart Profile or uploading your CV so our AI can find the perfect jobs for you.',
     placement: 'right',
-    disableBeacon: true,
   },
   {
     target:    '#tour-search',
     title:     '🔍 Start Your Job Search',
     content:   'Let the magic happen! Search for your dream job in the MENA region. You have 2 free AI searches!',
     placement: 'bottom',
-    disableBeacon: true,
   },
   {
     target:    '#tour-results',
     title:     '⭐ Your Match Score',
     content:   'Look for your Match Score on each job. Upgrade to Premium ($4.99) to see all hidden company names and apply directly.',
     placement: 'top',
-    disableBeacon: true,
   },
 ];
 
@@ -35,107 +38,168 @@ const STEPS_AR: Step[] = [
     title:     '👋 مرحباً بك في MenaJob AI!',
     content:   'ابدأ بملء ملفك الذكي أو رفع سيرتك الذاتية حتى يتمكن الذكاء الاصطناعي من إيجاد أفضل الوظائف لك.',
     placement: 'right',
-    disableBeacon: true,
   },
   {
     target:    '#tour-search',
     title:     '🔍 ابدأ البحث عن وظيفة',
-    content:   'دع السحر يحدث! ابحث عن وظيفة أحلامك في منطقة الشرق الأوسط. لديك بحثان مجانيان بالذكاء الاصطناعي!',
+    content:   'دع السحر يحدث! ابحث عن وظيفة أحلامك في منطقة الشرق الأوسط. لديك بحثان مجانيان!',
     placement: 'bottom',
-    disableBeacon: true,
   },
   {
     target:    '#tour-results',
     title:     '⭐ درجة التطابق',
-    content:   'ابحث عن درجة التطابق في كل وظيفة. قم بالترقية مقابل 4.99$ لرؤية أسماء الشركات المخفية والتقديم مباشرة.',
+    content:   'ابحث عن درجة التطابق في كل وظيفة. قم بالترقية مقابل 4.99$ لرؤية أسماء الشركات المخفية.',
     placement: 'top',
-    disableBeacon: true,
   },
 ];
 
 export function OnboardingTour({ isLoggedIn }: { isLoggedIn: boolean }) {
   const { lang } = useLang();
-  const isAr = lang === 'ar';
-  const [run, setRun] = useState(false);
+  const isAr     = lang === 'ar';
+  const steps    = isAr ? STEPS_AR : STEPS_EN;
+
+  const [visible,      setVisible]      = useState(false);
+  const [currentStep,  setCurrentStep]  = useState(0);
+  const [tooltipStyle, setTooltipStyle] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    // Only run once per browser
     if (localStorage.getItem(TOUR_KEY)) return;
-    // Small delay so dashboard fully renders before tour starts
-    const t = setTimeout(() => setRun(true), 1500);
+    const t = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(t);
   }, [isLoggedIn]);
 
-  const handleCallback = (data: CallBackProps) => {
-    const { status } = data;
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      localStorage.setItem(TOUR_KEY, 'true');
-      setRun(false);
+  useEffect(() => {
+    if (!visible) return;
+    positionTooltip();
+  }, [visible, currentStep]);
+
+  const positionTooltip = () => {
+    const step = steps[currentStep];
+    const el   = document.querySelector(step.target);
+    if (!el) return;
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const rect = el.getBoundingClientRect();
+    const placement = step.placement ?? 'bottom';
+
+    let top  = 0;
+    let left = 0;
+    const TW = 320; // tooltip width
+    const TH = 160; // tooltip height approx
+
+    if (placement === 'bottom') {
+      top  = rect.bottom + window.scrollY + 12;
+      left = rect.left + window.scrollX + rect.width / 2 - TW / 2;
+    } else if (placement === 'top') {
+      top  = rect.top + window.scrollY - TH - 12;
+      left = rect.left + window.scrollX + rect.width / 2 - TW / 2;
+    } else if (placement === 'right') {
+      top  = rect.top + window.scrollY + rect.height / 2 - TH / 2;
+      left = rect.right + window.scrollX + 12;
+    } else {
+      top  = rect.top + window.scrollY + rect.height / 2 - TH / 2;
+      left = rect.left + window.scrollX - TW - 12;
+    }
+
+    // Keep within viewport
+    left = Math.max(12, Math.min(left, window.innerWidth - TW - 12));
+    setTooltipStyle({ top, left });
+  };
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(s => s + 1);
+    } else {
+      finish();
     }
   };
 
-  if (!isLoggedIn || !run) return null;
+  const handleBack = () => {
+    if (currentStep > 0) setCurrentStep(s => s - 1);
+  };
+
+  const finish = () => {
+    localStorage.setItem(TOUR_KEY, 'true');
+    setVisible(false);
+  };
+
+  if (!isLoggedIn || !visible) return null;
+
+  const step = steps[currentStep];
+  const el   = document.querySelector(step.target);
 
   return (
-    <Joyride
-      steps={isAr ? STEPS_AR : STEPS_EN}
-      run={run}
-      continuous
-      showSkipButton
-      showProgress
-      callback={handleCallback}
-      locale={{
-        back:  isAr ? 'رجوع'  : 'Back',
-        close: isAr ? 'إغلاق' : 'Close',
-        last:  isAr ? 'إنهاء' : 'Finish',
-        next:  isAr ? 'التالي': 'Next',
-        skip:  isAr ? 'تخطي'  : 'Skip tour',
-      }}
-      styles={{
-        options: {
-          primaryColor:    '#f97316',   // orange-500
-          backgroundColor: '#ffffff',
-          textColor:       '#1e293b',   // slate-900
-          arrowColor:      '#ffffff',
-          zIndex:          9999,
-        },
-        tooltip: {
-          borderRadius: '16px',
-          padding:      '20px 24px',
-          boxShadow:    '0 20px 60px rgba(0,0,0,0.15)',
-          maxWidth:     '320px',
-        },
-        tooltipTitle: {
-          fontSize:   '16px',
-          fontWeight: '700',
-          marginBottom: '8px',
-        },
-        tooltipContent: {
-          fontSize:   '14px',
-          lineHeight: '1.6',
-          color:      '#475569',
-        },
-        buttonNext: {
-          backgroundColor: '#f97316',
-          borderRadius:    '10px',
-          padding:         '10px 20px',
-          fontWeight:      '600',
-          fontSize:        '14px',
-        },
-        buttonBack: {
-          color:      '#94a3b8',
-          marginRight: '8px',
-          fontSize:   '14px',
-        },
-        buttonSkip: {
-          color:    '#94a3b8',
-          fontSize: '13px',
-        },
-        spotlight: {
-          borderRadius: '12px',
-        },
-      }}
-    />
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 z-[9998] pointer-events-none">
+        {/* Highlight the target element */}
+        {el && (() => {
+          const rect = el.getBoundingClientRect();
+          return (
+            <div
+              className="absolute rounded-xl ring-4 ring-orange-400 ring-offset-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
+              style={{
+                top:    rect.top  + window.scrollY,
+                left:   rect.left + window.scrollX,
+                width:  rect.width,
+                height: rect.height,
+              }}
+            />
+          );
+        })()}
+      </div>
+
+      {/* Tooltip */}
+      <div
+        className="fixed z-[9999] w-80 bg-white rounded-2xl shadow-2xl p-5 pointer-events-auto"
+        style={{ top: tooltipStyle.top, left: tooltipStyle.left }}
+        dir={isAr ? 'rtl' : 'ltr'}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-bold text-slate-900 text-base leading-snug">{step.title}</h3>
+          <button onClick={finish} className="text-slate-300 hover:text-slate-500 text-lg leading-none ml-2 flex-shrink-0">×</button>
+        </div>
+
+        {/* Content */}
+        <p className="text-slate-500 text-sm leading-relaxed mb-4">{step.content}</p>
+
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-1.5 mb-4">
+          {steps.map((_, i) => (
+            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === currentStep ? 'bg-orange-500 w-4' : 'bg-slate-200'}`} />
+          ))}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={finish}
+            className="text-slate-400 hover:text-slate-600 text-xs transition-colors"
+          >
+            {isAr ? 'تخطي' : 'Skip tour'}
+          </button>
+          <div className="flex gap-2">
+            {currentStep > 0 && (
+              <button
+                onClick={handleBack}
+                className="px-3 py-1.5 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+              >
+                {isAr ? 'رجوع' : 'Back'}
+              </button>
+            )}
+            <button
+              onClick={handleNext}
+              className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-all active:scale-95"
+            >
+              {currentStep === steps.length - 1
+                ? (isAr ? 'إنهاء' : 'Finish')
+                : (isAr ? 'التالي' : 'Next')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
