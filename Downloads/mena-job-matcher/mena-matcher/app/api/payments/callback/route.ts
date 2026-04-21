@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   // ── Missing params ─────────────────────────────────────────────────────────
   if (!paymentId || !userId || !planId) {
     console.error('[callback] Missing required params');
-    return NextResponse.redirect(`${APP_URL}/dashboard?payment=failed&reason=missing_params`);
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=missing_params`);
   }
 
   const sb = adminClient();
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
       credits_added:         0,
       status:                'verification_failed',
     }); } catch {}
-    return NextResponse.redirect(`${APP_URL}/dashboard?payment=failed&reason=verification_failed`);
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=verification_failed`);
   }
 
   // ── Step 3: Check payment status ──────────────────────────────────────────
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
       credits_added:         0,
       status:                invoiceStatus.toLowerCase(),
     }); } catch {}
-    return NextResponse.redirect(`${APP_URL}/dashboard?payment=failed&reason=${invoiceStatus.toLowerCase()}`);
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=${invoiceStatus.toLowerCase()}`);
   }
 
   // ── Step 4: Credit the user ────────────────────────────────────────────────
@@ -143,6 +143,6 @@ export async function GET(req: NextRequest) {
 
   } catch (err: any) {
     console.error('[callback] DB error:', err.message);
-    return NextResponse.redirect(`${APP_URL}/dashboard?payment=failed&reason=db_error`);
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=db_error`);
   }
 }
