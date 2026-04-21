@@ -1,5 +1,5 @@
 // scripts/sync-jobs.ts
-// Multi-sector job sync: 1x JSearch + 2x SerpApi with key rotation
+// Parallel sync: JSearch + SerpApi gleichzeitig, auto-dedup, never stops
 // Run: npx tsx scripts/sync-jobs.ts
 
 import { createClient } from '@supabase/supabase-js';
@@ -11,146 +11,186 @@ const sb = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 // ── API Key Pools ─────────────────────────────────────────────────────────────
-const JSEARCH_KEYS  = [process.env.JSEARCH_API_KEY].filter(Boolean) as string[];
-const SERPAPI_KEYS  = [
-  process.env.SERPAPI_KEY,
-  process.env.SERPAPI_KEY_2,
-].filter(Boolean) as string[];
+const JSEARCH_KEYS: string[] = (process.env.JSEARCH_API_KEYS ?? process.env.JSEARCH_API_KEY ?? '')
+  .split(',').map(k => k.trim()).filter(Boolean);
 
-let jsearchIdx = 0;
-let serpIdx    = 0;
+const SERPAPI_KEYS: string[] = (
+  process.env.SERPAPI_API_KEYS ??
+  [process.env.SERPAPI_KEY, process.env.SERPAPI_KEY_2].filter(Boolean).join(',')
+).split(',').map(k => k.trim()).filter(Boolean);
 
-function getJSearchKey(): string  { return JSEARCH_KEYS[jsearchIdx]; }
-function getSerpKey(): string     { return SERPAPI_KEYS[serpIdx]; }
-function rotateJSearch(): boolean {
-  if (jsearchIdx < JSEARCH_KEYS.length - 1) { jsearchIdx++; console.log('[keys] JSearch rotated'); return true; }
-  return false;
+let jIdx = 0;
+let sIdx = 0;
+let jDead = false;
+let sDead = false;
+
+// ── Location fix for SerpApi ──────────────────────────────────────────────────
+const LOC_MAP: Record<string, string> = {
+  'UAE': 'United Arab Emirates',
+  'KSA': 'Saudi Arabia',
+};
+const fixLoc = (l: string) => LOC_MAP[l] ?? l;
+
+// ── Rate limit detection ──────────────────────────────────────────────────────
+const isRateLimit = (status: number, body: any) => {
+  if ([429, 401, 403].includes(status)) return true;
+  const m = (body?.message ?? body?.error ?? '').toLowerCase();
+  return m.includes('exceeded') || m.includes('quota') ||
+         m.includes('rate') || m.includes('out of searches');
+};
+
+// ── JSearch fetch with key rotation ──────────────────────────────────────────
+async function fetchJSearch(query: string, location: string): Promise<any[]> {
+  while (jIdx < JSEARCH_KEYS.length) {
+    try {
+      const url = new URL('https://jsearch.p.rapidapi.com/search');
+      url.searchParams.set('query',       `${query} in ${location}`);
+      url.searchParams.set('page',        '1');
+      url.searchParams.set('num_pages',   '2');
+      url.searchParams.set('date_posted', 'month');
+      const res  = await fetch(url.toString(), {
+        headers: {
+          'X-RapidAPI-Key':  JSEARCH_KEYS[jIdx],
+          'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+        },
+      });
+      const data = await res.json();
+      if (isRateLimit(res.status, data)) {
+        jIdx++;
+        await sleep(500);
+        continue;
+      }
+      return data.data ?? [];
+    } catch {
+      jIdx++;
+      await sleep(500);
+    }
+  }
+  jDead = true;
+  return [];
 }
-function rotateSerpApi(): boolean {
-  if (serpIdx < SERPAPI_KEYS.length - 1) { serpIdx++; console.log('[keys] SerpApi rotated to key 2'); return true; }
-  return false;
+
+// ── SerpApi fetch with key rotation ──────────────────────────────────────────
+async function fetchSerpApi(query: string, location: string): Promise<any[]> {
+  const loc = fixLoc(location);
+  while (sIdx < SERPAPI_KEYS.length) {
+    try {
+      const url = new URL('https://serpapi.com/search');
+      url.searchParams.set('engine',   'google_jobs');
+      url.searchParams.set('q',        `${query} ${loc}`);
+      url.searchParams.set('location', loc);
+      url.searchParams.set('hl',       'en');
+      url.searchParams.set('api_key',  SERPAPI_KEYS[sIdx]);
+      const res  = await fetch(url.toString());
+      const data = await res.json();
+      if (isRateLimit(res.status, data) ||
+          (data.error?.includes('out of searches') || data.error?.includes('rate'))) {
+        sIdx++;
+        await sleep(500);
+        continue;
+      }
+      if (data.error) return []; // location error etc — skip silently
+      return data.jobs_results ?? [];
+    } catch {
+      sIdx++;
+      await sleep(500);
+    }
+  }
+  sDead = true;
+  return [];
 }
 
-// ── Search Queries (54 total, 7 sectors) ──────────────────────────────────────
-const QUERIES: { query: string; location: string; sector: string; api: 'jsearch' | 'serp' }[] = [
-  // Construction — SerpApi
-  { query: 'Site Engineer NEOM',          location: 'Saudi Arabia', sector: 'Construction', api: 'serp' },
-  { query: 'Construction Project Manager',location: 'UAE',          sector: 'Construction', api: 'serp' },
-  { query: 'Electrician jobs Gulf',        location: 'Dubai',        sector: 'Construction', api: 'serp' },
-  { query: 'HSE Officer',                  location: 'Saudi Arabia', sector: 'Construction', api: 'serp' },
-  { query: 'Civil Engineer',               location: 'Qatar',        sector: 'Construction', api: 'serp' },
-  { query: 'Site Supervisor',              location: 'Abu Dhabi',    sector: 'Construction', api: 'serp' },
-  { query: 'Quantity Surveyor',            location: 'Saudi Arabia', sector: 'Construction', api: 'serp' },
-  { query: 'Plumber jobs Gulf',            location: 'UAE',          sector: 'Construction', api: 'serp' },
-
-  // Hospitality — SerpApi
-  { query: 'Hotel Receptionist',           location: 'Dubai',        sector: 'Hospitality',  api: 'serp' },
-  { query: 'Chef de Partie',               location: 'Saudi Arabia', sector: 'Hospitality',  api: 'serp' },
-  { query: 'F&B Manager',                  location: 'UAE',          sector: 'Hospitality',  api: 'serp' },
-  { query: 'Housekeeping Supervisor',      location: 'Qatar',        sector: 'Hospitality',  api: 'serp' },
-  { query: 'Restaurant Manager',           location: 'Riyadh',       sector: 'Hospitality',  api: 'serp' },
-  { query: 'Barista jobs Dubai',           location: 'Dubai',        sector: 'Hospitality',  api: 'serp' },
-  { query: 'Hotel Manager',                location: 'UAE',          sector: 'Hospitality',  api: 'serp' },
-  { query: 'Waiter jobs Gulf',             location: 'Saudi Arabia', sector: 'Hospitality',  api: 'serp' },
-
-  // Healthcare — SerpApi
-  { query: 'Registered Nurse',             location: 'Saudi Arabia', sector: 'Healthcare',   api: 'serp' },
-  { query: 'Pharmacist jobs',              location: 'UAE',          sector: 'Healthcare',   api: 'serp' },
-  { query: 'Medical Laboratory Technician',location: 'Saudi Arabia', sector: 'Healthcare',   api: 'serp' },
-  { query: 'Physiotherapist',              location: 'Dubai',        sector: 'Healthcare',   api: 'serp' },
-  { query: 'General Practitioner Doctor',  location: 'UAE',          sector: 'Healthcare',   api: 'serp' },
-  { query: 'ICU Nurse',                    location: 'Qatar',        sector: 'Healthcare',   api: 'serp' },
-  { query: 'Dentist jobs Gulf',            location: 'UAE',          sector: 'Healthcare',   api: 'serp' },
-  { query: 'Radiologist',                  location: 'Saudi Arabia', sector: 'Healthcare',   api: 'serp' },
-
-  // Logistics — SerpApi
-  { query: 'Delivery Driver',              location: 'Dubai',        sector: 'Logistics',    api: 'serp' },
-  { query: 'Warehouse Manager',            location: 'Saudi Arabia', sector: 'Logistics',    api: 'serp' },
-  { query: 'Fleet Manager',                location: 'UAE',          sector: 'Logistics',    api: 'serp' },
-  { query: 'Forklift Operator',            location: 'Dubai',        sector: 'Logistics',    api: 'serp' },
-  { query: 'Supply Chain Manager',         location: 'Saudi Arabia', sector: 'Logistics',    api: 'serp' },
-  { query: 'Truck Driver Gulf',            location: 'UAE',          sector: 'Logistics',    api: 'serp' },
-
-  // Education — JSearch
-  { query: 'English Teacher',              location: 'Saudi Arabia', sector: 'Education',    api: 'jsearch' },
-  { query: 'Primary School Teacher',       location: 'UAE',          sector: 'Education',    api: 'jsearch' },
-  { query: 'Math Teacher international',   location: 'Qatar',        sector: 'Education',    api: 'jsearch' },
-  { query: 'Special Education Teacher',    location: 'UAE',          sector: 'Education',    api: 'jsearch' },
-  { query: 'School Administrator',         location: 'Saudi Arabia', sector: 'Education',    api: 'jsearch' },
-  { query: 'Arabic Teacher',               location: 'UAE',          sector: 'Education',    api: 'jsearch' },
-
-  // Retail — JSearch
-  { query: 'Sales Associate mall',         location: 'Dubai',        sector: 'Retail',       api: 'jsearch' },
-  { query: 'Store Manager retail',         location: 'Saudi Arabia', sector: 'Retail',       api: 'jsearch' },
-  { query: 'Visual Merchandiser',          location: 'UAE',          sector: 'Retail',       api: 'jsearch' },
-  { query: 'Cashier jobs Gulf',            location: 'Dubai',        sector: 'Retail',       api: 'jsearch' },
-  { query: 'Retail Supervisor',            location: 'Qatar',        sector: 'Retail',       api: 'jsearch' },
-  { query: 'Fashion Retail jobs',          location: 'UAE',          sector: 'Retail',       api: 'jsearch' },
-
-  // Technology — JSearch
-  { query: 'Software Engineer',            location: 'Dubai',        sector: 'Technology',   api: 'jsearch' },
-  { query: 'Data Scientist',               location: 'Saudi Arabia', sector: 'Technology',   api: 'jsearch' },
-  { query: 'Product Manager',              location: 'UAE',          sector: 'Technology',   api: 'jsearch' },
-  { query: 'DevOps Engineer',              location: 'UAE',          sector: 'Technology',   api: 'jsearch' },
-  { query: 'UX Designer',                  location: 'Dubai',        sector: 'Technology',   api: 'jsearch' },
-  { query: 'Cybersecurity Analyst',        location: 'Saudi Arabia', sector: 'Technology',   api: 'jsearch' },
-
-  // Finance — JSearch
-  { query: 'Financial Analyst',            location: 'Dubai',        sector: 'Finance',      api: 'jsearch' },
-  { query: 'Accountant jobs',              location: 'Saudi Arabia', sector: 'Finance',      api: 'jsearch' },
-  { query: 'Banking Relationship Manager', location: 'UAE',          sector: 'Finance',      api: 'jsearch' },
-  { query: 'Audit Manager',                location: 'Dubai',        sector: 'Finance',      api: 'jsearch' },
+// ── Queries ───────────────────────────────────────────────────────────────────
+const QUERIES: { query: string; location: string; sector: string }[] = [
+  // Construction
+  { query: 'Site Engineer',                location: 'Saudi Arabia',         sector: 'Construction' },
+  { query: 'Construction Project Manager', location: 'United Arab Emirates', sector: 'Construction' },
+  { query: 'Electrician',                  location: 'Dubai',                sector: 'Construction' },
+  { query: 'HSE Officer',                  location: 'Saudi Arabia',         sector: 'Construction' },
+  { query: 'Civil Engineer',               location: 'Qatar',                sector: 'Construction' },
+  { query: 'Site Supervisor',              location: 'Abu Dhabi',            sector: 'Construction' },
+  { query: 'Quantity Surveyor',            location: 'Saudi Arabia',         sector: 'Construction' },
+  { query: 'Plumber',                      location: 'Dubai',                sector: 'Construction' },
+  // Hospitality
+  { query: 'Hotel Receptionist',           location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Chef de Partie',               location: 'Saudi Arabia',         sector: 'Hospitality'  },
+  { query: 'F&B Manager',                  location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Housekeeping Supervisor',      location: 'Qatar',                sector: 'Hospitality'  },
+  { query: 'Restaurant Manager',           location: 'Riyadh',               sector: 'Hospitality'  },
+  { query: 'Barista',                      location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Hotel Manager',                location: 'Abu Dhabi',            sector: 'Hospitality'  },
+  // Healthcare
+  { query: 'Registered Nurse',             location: 'Saudi Arabia',         sector: 'Healthcare'   },
+  { query: 'Pharmacist',                   location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Medical Laboratory Technician',location: 'Saudi Arabia',         sector: 'Healthcare'   },
+  { query: 'Physiotherapist',              location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'General Practitioner Doctor',  location: 'Abu Dhabi',            sector: 'Healthcare'   },
+  { query: 'ICU Nurse',                    location: 'Qatar',                sector: 'Healthcare'   },
+  { query: 'Dentist',                      location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Radiologist',                  location: 'Saudi Arabia',         sector: 'Healthcare'   },
+  // Logistics
+  { query: 'Delivery Driver',              location: 'Dubai',                sector: 'Logistics'    },
+  { query: 'Warehouse Manager',            location: 'Saudi Arabia',         sector: 'Logistics'    },
+  { query: 'Fleet Manager',                location: 'Dubai',                sector: 'Logistics'    },
+  { query: 'Supply Chain Manager',         location: 'Saudi Arabia',         sector: 'Logistics'    },
+  { query: 'Truck Driver',                 location: 'Dubai',                sector: 'Logistics'    },
+  // Education
+  { query: 'English Teacher',              location: 'Saudi Arabia',         sector: 'Education'    },
+  { query: 'Primary School Teacher',       location: 'Dubai',                sector: 'Education'    },
+  { query: 'Math Teacher',                 location: 'Qatar',                sector: 'Education'    },
+  { query: 'Special Education Teacher',    location: 'Abu Dhabi',            sector: 'Education'    },
+  { query: 'School Administrator',         location: 'Saudi Arabia',         sector: 'Education'    },
+  // Retail
+  { query: 'Sales Associate',              location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Store Manager',                location: 'Saudi Arabia',         sector: 'Retail'       },
+  { query: 'Visual Merchandiser',          location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Cashier',                      location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Retail Supervisor',            location: 'Qatar',                sector: 'Retail'       },
+  // Technology
+  { query: 'Software Engineer',            location: 'Dubai',                sector: 'Technology'   },
+  { query: 'Data Scientist',               location: 'Saudi Arabia',         sector: 'Technology'   },
+  { query: 'Product Manager',              location: 'Dubai',                sector: 'Technology'   },
+  { query: 'DevOps Engineer',              location: 'Dubai',                sector: 'Technology'   },
+  { query: 'UX Designer',                  location: 'Dubai',                sector: 'Technology'   },
+  { query: 'Cybersecurity Analyst',        location: 'Saudi Arabia',         sector: 'Technology'   },
+  // Finance
+  { query: 'Financial Analyst',            location: 'Dubai',                sector: 'Finance'      },
+  { query: 'Accountant',                   location: 'Saudi Arabia',         sector: 'Finance'      },
+  { query: 'Banking Relationship Manager', location: 'Dubai',                sector: 'Finance'      },
+  { query: 'Audit Manager',                location: 'Dubai',                sector: 'Finance'      },
+  // Blue-Collar
+  { query: 'Delivery Driver',              location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Delivery Rider',               location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'Van Driver',                   location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Truck Driver',                 location: 'Jeddah',               sector: 'Blue-Collar'  },
+  { query: 'Taxi Driver',                  location: 'Doha',                 sector: 'Blue-Collar'  },
+  { query: 'Cleaner',                      location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Housekeeping staff',           location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Janitor',                      location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'Construction Worker',          location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Handyman',                     location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Electrician helper',           location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'AC Technician',                location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Security Guard',               location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Security Officer',             location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'CCTV Operator',                location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Waiter Waitress',              location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Cashier',                      location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'Kitchen Helper',               location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Barista',                      location: 'Jeddah',               sector: 'Blue-Collar'  },
+  { query: 'Food Delivery',                location: 'Doha',                 sector: 'Blue-Collar'  },
+  { query: 'Warehouse Worker',             location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Storekeeper',                  location: 'Riyadh',               sector: 'Blue-Collar'  },
+  { query: 'Forklift Operator',            location: 'Jeddah',               sector: 'Blue-Collar'  },
+  { query: 'Nanny Babysitter',             location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Sales Assistant',              location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Store Helper',                 location: 'Riyadh',               sector: 'Blue-Collar'  },
 ];
 
-// ── JSearch Fetch ─────────────────────────────────────────────────────────────
-async function fetchJSearch(query: string, location: string): Promise<any[]> {
-  for (let attempt = 0; attempt <= JSEARCH_KEYS.length; attempt++) {
-    const url = new URL('https://jsearch.p.rapidapi.com/search');
-    url.searchParams.set('query', `${query} in ${location}`);
-    url.searchParams.set('page', '1');
-    url.searchParams.set('num_pages', '2');
-    url.searchParams.set('date_posted', 'month');
-
-    const res = await fetch(url.toString(), {
-      headers: { 'X-RapidAPI-Key': getJSearchKey(), 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com' },
-    });
-    if (res.status === 429 || res.status === 403) {
-      if (!rotateJSearch()) throw new Error('JSearch keys exhausted');
-      await sleep(1000);
-      continue;
-    }
-    const data = await res.json();
-    return data.data ?? [];
-  }
-  return [];
-}
-
-// ── SerpApi Fetch ─────────────────────────────────────────────────────────────
-async function fetchSerpApi(query: string, location: string): Promise<any[]> {
-  for (let attempt = 0; attempt <= SERPAPI_KEYS.length; attempt++) {
-    const url = new URL('https://serpapi.com/search');
-    url.searchParams.set('engine',   'google_jobs');
-    url.searchParams.set('q',        `${query} ${location}`);
-    url.searchParams.set('location', location);
-    url.searchParams.set('hl',       'en');
-    url.searchParams.set('api_key',  getSerpKey());
-
-    const res  = await fetch(url.toString());
-    const data = await res.json();
-
-    if (data.error?.includes('rate') || data.error?.includes('limit') || res.status === 429) {
-      console.warn(`[serp] Key ${serpIdx + 1} rate limited`);
-      if (!rotateSerpApi()) throw new Error('SerpApi keys exhausted');
-      await sleep(1000);
-      continue;
-    }
-    return data.jobs_results ?? [];
-  }
-  return [];
-}
-
-// ── Map results to Supabase row ───────────────────────────────────────────────
+// ── Mappers ───────────────────────────────────────────────────────────────────
 const expires = () => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString(); };
 
 function mapJSearch(j: any, sector: string) {
@@ -181,9 +221,9 @@ function mapSerpApi(j: any, sector: string, location: string) {
     id,
     title:           j.title ?? '',
     company:         j.company_name ?? '',
-    location:        `${j.location ?? location}`,
+    location:        j.location ?? location,
     country:         location,
-    description:     (j.description ?? j.detected_extensions?.description ?? '').slice(0, 5000),
+    description:     (j.description ?? '').slice(0, 5000),
     employment_type: j.detected_extensions?.work_from_home ? 'Remote' : (j.detected_extensions?.schedule_type ?? ''),
     remote:          j.detected_extensions?.work_from_home ?? false,
     url:             j.related_links?.[0]?.link ?? j.link ?? '',
@@ -192,70 +232,93 @@ function mapSerpApi(j: any, sector: string, location: string) {
     salary_min:      null,
     salary_max:      null,
     salary_currency: null,
-    posted_at:       j.detected_extensions?.posted_at ? new Date(j.detected_extensions.posted_at).toISOString() : new Date().toISOString(),
+    posted_at:       (() => {
+      try {
+        const raw = j.detected_extensions?.posted_at;
+        if (!raw) return new Date().toISOString();
+        const d = new Date(raw);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      } catch { return new Date().toISOString(); }
+    })(),
     fetched_at:      new Date().toISOString(),
     expires_at:      expires(),
   };
 }
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-// ── Upsert to Supabase with deduplication ─────────────────────────────────────
+// ── Upsert — ignoreDuplicates handles dedup automatically ─────────────────────
 async function upsertJobs(jobs: any[]): Promise<{ inserted: number; skipped: number }> {
   if (!jobs.length) return { inserted: 0, skipped: 0 };
-
-const { error, data } = await sb
+  // Remove in-batch duplicates by id before sending to DB
+  const unique = Object.values(Object.fromEntries(jobs.map(j => [j.id, j])));
+  const { error, data } = await sb
     .from('jobs')
-    .upsert(jobs, { onConflict: 'id', ignoreDuplicates: true })
+    .upsert(unique, { onConflict: 'id', ignoreDuplicates: true })
     .select('id');
-
-  if (error) { console.error('  DB error:', error.message); return { inserted: 0, skipped: jobs.length }; }
+  if (error) { console.error('  DB error:', error.message); return { inserted: 0, skipped: unique.length }; }
   const inserted = data?.length ?? 0;
-  return { inserted, skipped: jobs.length - inserted };
+  return { inserted, skipped: unique.length - inserted };
+}
+
+// ── Process one query: fetch BOTH APIs in parallel, merge & upsert ────────────
+async function processQuery(query: string, location: string, sector: string): Promise<{ inserted: number; skipped: number }> {
+  const [jResult, sResult] = await Promise.allSettled([
+    jDead ? Promise.resolve([]) : fetchJSearch(query, location),
+    sDead ? Promise.resolve([]) : fetchSerpApi(query, location),
+  ]);
+
+  const jRaw = jResult.status === 'fulfilled' ? jResult.value : [];
+  const sRaw = sResult.status === 'fulfilled' ? sResult.value : [];
+
+  const jobs = [
+    ...jRaw.map(j => mapJSearch(j, sector)),
+    ...sRaw.map(j => mapSerpApi(j, sector, location)),
+  ];
+
+  return upsertJobs(jobs);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log(`\nMenaJob AI — Multi-Sector Sync`);
+  console.log('\nMenaJob AI — Parallel Sync (JSearch + SerpApi simultaneously)');
   console.log(`JSearch keys: ${JSEARCH_KEYS.length} | SerpApi keys: ${SERPAPI_KEYS.length}`);
-  console.log(`Total queries: ${QUERIES.length}\n`);
+  console.log(`Total queries: ${QUERIES.length} | Concurrency: 3 at a time\n`);
 
   let totalInserted = 0;
   let totalSkipped  = 0;
   let totalErrors   = 0;
 
-  for (const { query, location, sector, api } of QUERIES) {
-    try {
-      process.stdout.write(`[${sector}] "${query}" (${api})... `);
+  // Process in batches of 3 to avoid overwhelming APIs
+  const BATCH = 3;
+  for (let i = 0; i < QUERIES.length; i += BATCH) {
+    const batch = QUERIES.slice(i, i + BATCH);
 
-      let raw: any[] = [];
-      if (api === 'jsearch' && JSEARCH_KEYS.length > 0) {
-        raw = await fetchJSearch(query, location);
-      } else if (api === 'serp' && SERPAPI_KEYS.length > 0) {
-        raw = await fetchSerpApi(query, location);
+    const results = await Promise.allSettled(
+      batch.map(({ query, location, sector }) =>
+        processQuery(query, location, sector).then(r => ({ query, location, sector, ...r }))
+      )
+    );
+
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        const { query, location, inserted, skipped } = r.value;
+        console.log(`✓ "${query}" @ ${location} → +${inserted} new, ${skipped} dupes`);
+        totalInserted += inserted;
+        totalSkipped  += skipped;
       } else {
-        console.log('SKIPPED (no key)');
-        continue;
+        console.log(`✗ Error: ${r.reason?.message ?? r.reason}`);
+        totalErrors++;
       }
-
-      const jobs = api === 'jsearch'
-        ? raw.map(j => mapJSearch(j, sector))
-        : raw.map(j => mapSerpApi(j, sector, location));
-
-      const { inserted, skipped } = await upsertJobs(jobs);
-      totalInserted += inserted;
-      totalSkipped  += skipped;
-      console.log(`${raw.length} found → +${inserted} new, ${skipped} dupes`);
-
-      await sleep(700); // rate limit buffer
-    } catch (err: any) {
-      console.log(`ERROR: ${err.message}`);
-      totalErrors++;
     }
+
+    // Small pause between batches
+    if (i + BATCH < QUERIES.length) await sleep(800);
   }
 
-  console.log(`\n${'='.repeat(40)}`);
-  console.log(`Done: +${totalInserted} inserted | ${totalSkipped} skipped | ${totalErrors} errors`);
+  console.log(`\n${'='.repeat(50)}`);
+  console.log(`Done: +${totalInserted} inserted | ${totalSkipped} dupes | ${totalErrors} errors`);
+  console.log(`JSearch key index: ${jIdx}/${JSEARCH_KEYS.length} | SerpApi key index: ${sIdx}/${SERPAPI_KEYS.length}`);
+  if (jDead) console.log('⚠ JSearch: all keys exhausted this run');
+  if (sDead) console.log('⚠ SerpApi: all keys exhausted this run');
 }
 
 main().catch(console.error);
