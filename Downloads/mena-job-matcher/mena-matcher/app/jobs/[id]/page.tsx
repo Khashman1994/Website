@@ -5,6 +5,12 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Building2, ExternalLink, ArrowLeft, Briefcase } from 'lucide-react';
 
+// ISR: revalidate every 24 hours — Google sees fresh content
+export const revalidate = 86400;
+
+// Tell Next.js to generate pages on-demand for unknown IDs (new jobs)
+export const dynamicParams = true;
+
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL
               ?? process.env.NEXT_PUBLIC_APP_URL
               ?? 'https://www.menajob-ai.com';
@@ -32,7 +38,7 @@ async function getJob(id: string) {
 export async function generateMetadata(
   { params }: { params: { id: string } }
 ): Promise<Metadata> {
-  const job = await getJob(params.id);
+  const job = await getJob(decodeURIComponent(params.id));
 
   if (!job) {
     return {
@@ -77,17 +83,161 @@ export async function generateMetadata(
   };
 }
 
+// ── Employment type mapper ────────────────────────────────────────────────────
+function toSchemaEmploymentType(type?: string): string {
+  const map: Record<string, string> = {
+    'full-time':  'FULL_TIME',
+    'fulltime':   'FULL_TIME',
+    'part-time':  'PART_TIME',
+    'parttime':   'PART_TIME',
+    'contract':   'CONTRACTOR',
+    'contractor': 'CONTRACTOR',
+    'freelance':  'CONTRACTOR',
+    'temporary':  'TEMPORARY',
+    'intern':     'INTERN',
+    'volunteer':  'VOLUNTEER',
+  };
+  return map[type?.toLowerCase() ?? ''] ?? 'FULL_TIME';
+}
+
 // ── Page Component ────────────────────────────────────────────────────────────
 export default async function JobPage({ params }: { params: { id: string } }) {
-  const job = await getJob(params.id);
-  if (!job) notFound();
+  const job = await getJob(decodeURIComponent(params.id));
+  if (!job) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-24 h-24 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <span className="text-5xl">🕵️</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-3">
+            Oops! This job has expired or been filled.
+          </h1>
+          <p className="text-slate-500 mb-8 leading-relaxed">
+            Don&apos;t worry — our AI has thousands of other open positions in the MENA region waiting for you.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all active:scale-95 shadow-lg shadow-orange-200"
+          >
+            🔍 Search New Jobs
+          </Link>
+          <p className="text-slate-400 text-sm mt-4">
+            New jobs added daily from UAE, Saudi Arabia, Qatar & more.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const salary = job.salary_min
     ? `${job.salary_min.toLocaleString()} – ${job.salary_max?.toLocaleString()} ${job.salary_currency ?? ''}`
     : null;
 
+  // ── Location helpers ──────────────────────────────────────────────────────
+  const getCountryCode = (loc: string) => {
+    const l = loc.toLowerCase();
+    if (l.includes('uae') || l.includes('dubai') || l.includes('abu dhabi') || l.includes('sharjah') || l.includes('emirates')) return 'AE';
+    if (l.includes('saudi') || l.includes('riyadh') || l.includes('jeddah') || l.includes('ksa') || l.includes('mecca') || l.includes('medina')) return 'SA';
+    if (l.includes('kuwait')) return 'KW';
+    if (l.includes('qatar') || l.includes('doha')) return 'QA';
+    if (l.includes('egypt') || l.includes('cairo') || l.includes('alexandria')) return 'EG';
+    if (l.includes('jordan') || l.includes('amman')) return 'JO';
+    if (l.includes('bahrain') || l.includes('manama')) return 'BH';
+    if (l.includes('oman') || l.includes('muscat')) return 'OM';
+    if (l.includes('lebanon') || l.includes('beirut')) return 'LB';
+    if (l.includes('morocco') || l.includes('casablanca')) return 'MA';
+    return 'AE';
+  };
+
+  const getRegion = (loc: string) => {
+    const l = loc.toLowerCase();
+    if (l.includes('dubai'))     return 'Dubai';
+    if (l.includes('abu dhabi')) return 'Abu Dhabi';
+    if (l.includes('sharjah'))   return 'Sharjah';
+    if (l.includes('riyadh'))    return 'Riyadh';
+    if (l.includes('jeddah'))    return 'Jeddah';
+    if (l.includes('dammam'))    return 'Eastern Province';
+    if (l.includes('doha'))      return 'Ad Dawhah';
+    if (l.includes('cairo'))     return 'Cairo Governorate';
+    if (l.includes('amman'))     return 'Amman Governorate';
+    if (l.includes('kuwait'))    return 'Al Asimah';
+    if (l.includes('muscat'))    return 'Muscat Governorate';
+    if (l.includes('manama'))    return 'Capital Governorate';
+    if (l.includes('beirut'))    return 'Beirut Governorate';
+    // fallback: use first part of location
+    return loc.split(',')[0]?.trim() ?? loc;
+  };
+
+  const getPostalCode = (countryCode: string) => {
+    const codes: Record<string, string> = {
+      AE: '00000', SA: '11564', KW: '13001',
+      QA: '00000', EG: '11511', JO: '11118',
+      BH: '00000', OM: '100',   LB: '1107',
+      MA: '20000',
+    };
+    return codes[countryCode] ?? '00000';
+  };
+
+  const locRaw      = job.location ?? '';
+  const city        = locRaw.split(',')[0]?.trim() || locRaw;
+  const countryCode = getCountryCode(locRaw);
+  const region      = getRegion(locRaw);
+  const postalCode  = getPostalCode(countryCode);
+
+  // ── JSON-LD: Schema.org JobPosting ────────────────────────────────────────
+  const jsonLd: Record<string, any> = {
+    '@context':      'https://schema.org',
+    '@type':         'JobPosting',
+    title:           job.title,
+    description:     job.description ?? job.title,
+    datePosted:      job.posted_at
+                       ? new Date(job.posted_at).toISOString().split('T')[0]
+                       : new Date().toISOString().split('T')[0],
+    validThrough:    new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    employmentType:  toSchemaEmploymentType(job.employment_type),
+    url:             `${BASE_URL}/jobs/${job.id}`,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name:    job.company,
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type':          'PostalAddress',
+        streetAddress:    city,           // city as street fallback
+        addressLocality:  city,
+        addressRegion:    region,
+        postalCode:       postalCode,
+        addressCountry:   countryCode,
+      },
+    },
+  };
+
+  // Only add jobLocationType if remote
+  if (job.remote) jsonLd.jobLocationType = 'TELECOMMUTE';
+
+  // Only add baseSalary if we have real data — omit entirely if missing
+  if (job.salary_min) {
+    jsonLd.baseSalary = {
+      '@type':   'MonetaryAmount',
+      currency:  job.salary_currency ?? 'USD',
+      value: {
+        '@type':   'QuantitativeValue',
+        minValue:  job.salary_min,
+        maxValue:  job.salary_max ?? job.salary_min,
+        unitText:  'MONTH',
+      },
+    };
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* JSON-LD Structured Data for Google Jobs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-12 px-4">
         <div className="max-w-3xl mx-auto">

@@ -210,7 +210,7 @@ export default function DashboardPage() {
               setUserTier(mono.tier ?? 'free');
               setUserCredits(mono.credits ?? 0);
               if (mono.tier === 'free') {
-                setMatchesLeft(Math.max(0, 5 - (mono.free_matches_used ?? 0)));
+                setMatchesLeft(Math.max(0, 2 - (mono.free_matches_used ?? 0)));
               }
             }
           } catch { /* non-blocking */ }
@@ -524,7 +524,7 @@ export default function DashboardPage() {
                   <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
                     matchesLeft <= 1 ? 'bg-red-400/80 text-white' : 'bg-white/20 text-white'
                   }`}>
-                    {isAr ? `${matchesLeft}/5 مطابقات` : `${matchesLeft}/5 matches`}
+                    {isAr ? `${matchesLeft}/2 مطابقات` : `${matchesLeft}/2 matches`}
                   </span>
                 )}
               </div>
@@ -585,10 +585,10 @@ export default function DashboardPage() {
                   </span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     matchesLeft === 0 ? 'bg-red-100 text-red-600'
-                    : matchesLeft <= 2 ? 'bg-orange-100 text-orange-600'
+                    : matchesLeft <= 1 ? 'bg-orange-100 text-orange-600'
                     : 'bg-green-100 text-green-600'
                   }`}>
-                    {matchesLeft}/5
+                    {matchesLeft}/2
                   </span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
@@ -598,7 +598,7 @@ export default function DashboardPage() {
                       : matchesLeft <= 2 ? 'bg-orange-400'
                       : 'bg-emerald-400'
                     }`}
-                    style={{ width: `${(matchesLeft / 5) * 100}%` }}
+                    style={{ width: `${(matchesLeft / 2) * 100}%` }}
                   />
                 </div>
                 {matchesLeft === 0 ? (
@@ -664,11 +664,11 @@ export default function DashboardPage() {
                       <div className="mt-4 max-w-xs mx-auto">
                         <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                           <span>{isAr ? 'المطابقات المتبقية' : 'Matches left this month'}</span>
-                          <span className="font-semibold text-slate-700">{matchesLeft}/5</span>
+                          <span className="font-semibold text-slate-700">{matchesLeft}/2</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div className="h-full bg-orange-400 rounded-full transition-all"
-                            style={{ width: `${(matchesLeft / 5) * 100}%` }} />
+                            style={{ width: `${(matchesLeft / 2) * 100}%` }} />
                         </div>
                         {matchesLeft <= 1 && (
                           <p className="text-xs text-orange-500 mt-1.5 font-medium text-center">
@@ -1329,20 +1329,20 @@ function PaywallModal({ isAr, onClose }: { isAr: boolean; onClose: () => void })
         dir={isAr ? 'rtl' : 'ltr'}
       >
         <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
-          <span className="text-3xl">&#128274;</span>
+          <span className="text-3xl">🚀</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
-          {isAr ? 'وصلت إلى حدك الشهري' : "You've reached your monthly limit"}
+          {isAr ? 'وصلت إلى الحد المجاني! 🚀' : 'Limit Reached! 🚀'}
         </h2>
         <p className="text-slate-500 text-sm mb-6 leading-relaxed">
           {isAr
-            ? 'لقد استخدمت 5 مطابقات مجانية هذا الشهر. قم بالترقية للاستمرار في البحث.'
-            : "You've used your 5 free AI matches this month. Upgrade to keep finding your dream job in MENA."}
+            ? 'لقد استخدمت بحثَين مجانيَّين بالذكاء الاصطناعي. قم بالترقية الآن مقابل 4.99$ فقط لفتح المطابقة غير المحدودة، ورؤية أسماء الشركات، والتقديم مباشرةً على وظائف أحلامك في منطقة الشرق الأوسط.'
+            : "You have used your 2 free AI searches. Upgrade now for just $4.99 to unlock unlimited AI matching, see all company names, and apply directly to your dream jobs in the MENA region."}
         </p>
         <div className="mb-6">
           <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>{isAr ? 'المطابقات المستخدمة' : 'Matches used'}</span>
-            <span className="font-semibold text-slate-600">5/5</span>
+            <span>{isAr ? 'المطابقات المستخدمة' : 'Free searches used'}</span>
+            <span className="font-semibold text-slate-600">2/2</span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full w-full bg-orange-400 rounded-full" />
@@ -1351,21 +1351,21 @@ function PaywallModal({ isAr, onClose }: { isAr: boolean; onClose: () => void })
         <div className="flex flex-col gap-3">
           <a
             href="/pricing"
-            className="block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-200"
+            className="block w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-200 text-base"
           >
-            {isAr ? 'ترقية الآن' : 'Upgrade Now'}
+            {isAr ? 'ترقية مقابل 4.99$' : 'Upgrade for $4.99'}
           </a>
           <a
             href="/pricing"
             className="block w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all text-sm"
           >
-            {isAr ? 'شراء رصيد — 4.99$ لـ 25 نجمة' : 'Buy Credits — $4.99 for 25 Stars'}
+            {isAr ? 'عرض جميع الباقات' : 'View all plans'}
           </a>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 text-sm transition-colors mt-1"
           >
-            {isAr ? 'إغلاق' : 'Maybe later'}
+            {isAr ? 'ربما لاحقاً' : 'Maybe later'}
           </button>
         </div>
       </div>

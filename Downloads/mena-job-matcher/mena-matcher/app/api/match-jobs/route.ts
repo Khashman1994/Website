@@ -97,9 +97,9 @@ export async function POST(req: NextRequest) {
             // pass
           } else if ((prof.credits ?? 0) > 0) {
             await sb.from('profiles').update({ credits: prof.credits - 1 }).eq('user_id', userId);
-          } else if (freeUsed < 5) {
+          } else if (freeUsed < 2) {
             await sb.from('profiles').update({ free_matches_used: freeUsed + 1 }).eq('user_id', userId);
-            matchesLeft = 4 - freeUsed;
+            matchesLeft = 1 - freeUsed;
           } else {
             return NextResponse.json({ error: 'LIMIT_REACHED', matchesLeft: 0, tier }, { status: 403 });
           }

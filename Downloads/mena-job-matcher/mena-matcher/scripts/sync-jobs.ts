@@ -105,6 +105,7 @@ async function fetchSerpApi(query: string, location: string): Promise<any[]> {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 const QUERIES: { query: string; location: string; sector: string }[] = [
+  // --- URSPRÜNGLICHE KATEGORIEN ---
   // Construction
   { query: 'Site Engineer',                location: 'Saudi Arabia',         sector: 'Construction' },
   { query: 'Construction Project Manager', location: 'United Arab Emirates', sector: 'Construction' },
@@ -188,6 +189,105 @@ const QUERIES: { query: string; location: string; sector: string }[] = [
   { query: 'Nanny Babysitter',             location: 'Dubai',                sector: 'Blue-Collar'  },
   { query: 'Sales Assistant',              location: 'Dubai',                sector: 'Blue-Collar'  },
   { query: 'Store Helper',                 location: 'Riyadh',               sector: 'Blue-Collar'  },
+
+  // --- NEUE LONG-TAIL & SMART KEYWORDS (Phase 2) ---
+  
+  // Construction & FM (Neu)
+  { query: 'BIM Manager',                  location: 'Dubai',                sector: 'Construction' },
+  { query: 'MEP Technician',               location: 'Saudi Arabia',         sector: 'Construction' },
+  { query: 'HVAC Technician',              location: 'Abu Dhabi',            sector: 'Construction' },
+  { query: 'Heavy Equipment Operator',     location: 'Qatar',                sector: 'Construction' },
+  { query: 'Scaffold Supervisor',          location: 'Dubai',                sector: 'Construction' },
+  { query: 'Structural Engineer',          location: 'Riyadh',               sector: 'Construction' },
+  { query: 'AutoCAD Draftsman',            location: 'Dubai',                sector: 'Construction' },
+  { query: 'QA/QC Engineer',               location: 'Saudi Arabia',         sector: 'Construction' },
+  { query: 'Safety Inspector',             location: 'Abu Dhabi',            sector: 'Construction' },
+  { query: 'Civil Foreman',                location: 'Qatar',                sector: 'Construction' },
+  { query: 'Plumbing Technician',          location: 'Riyadh',               sector: 'Construction' },
+  { query: 'Electrical Technician',        location: 'Jeddah',               sector: 'Construction' },
+  // Blue-Collar & FM (Neu)
+  { query: 'AC Maintenance',               location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Cleaning Supervisor',          location: 'Saudi Arabia',         sector: 'Blue-Collar'  },
+  { query: 'Pest Control Technician',      location: 'Dubai',                sector: 'Blue-Collar'  },
+  { query: 'Welder',                       location: 'Abu Dhabi',            sector: 'Blue-Collar'  },
+  { query: 'Carpenter',                    location: 'Dubai',                sector: 'Blue-Collar'  },
+  // Hospitality & Tourism (Neu)
+  { query: 'Sous Chef',                    location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Pastry Chef',                  location: 'Riyadh',               sector: 'Hospitality'  },
+  { query: 'Front Desk Agent',             location: 'Abu Dhabi',            sector: 'Hospitality'  },
+  { query: 'Concierge',                    location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Room Attendant',               location: 'Qatar',                sector: 'Hospitality'  },
+  { query: 'Restaurant Supervisor',        location: 'Jeddah',               sector: 'Hospitality'  },
+  { query: 'Hostess',                      location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Banquet Manager',              location: 'Abu Dhabi',            sector: 'Hospitality'  },
+  { query: 'Executive Chef',               location: 'Saudi Arabia',         sector: 'Hospitality'  },
+  { query: 'Bartender',                    location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Travel Consultant',            location: 'Dubai',                sector: 'Hospitality'  },
+  { query: 'Tour Guide',                   location: 'Abu Dhabi',            sector: 'Hospitality'  },
+  // Logistics & Transport (Neu)
+  { query: 'Heavy Truck Driver',           location: 'Saudi Arabia',         sector: 'Logistics'    },
+  { query: 'Light Vehicle Driver',         location: 'Dubai',                sector: 'Logistics'    },
+  { query: 'Forklift Operator',            location: 'Abu Dhabi',            sector: 'Logistics'    },
+  { query: 'Logistics Coordinator',        location: 'Dubai',                sector: 'Logistics'    },
+  { query: 'Supply Chain Analyst',         location: 'Riyadh',               sector: 'Logistics'    },
+  { query: 'Customs Clearance',            location: 'Jeddah',               sector: 'Logistics'    },
+  { query: 'Fleet Supervisor',             location: 'Dubai',                sector: 'Logistics'    },
+  { query: 'Warehouse Picker',             location: 'Saudi Arabia',         sector: 'Logistics'    },
+  { query: 'Inventory Controller',         location: 'Dubai',                sector: 'Logistics'    },
+  // Technology & Digital (Neu)
+  { query: 'Frontend Developer React',     location: 'Dubai',                sector: 'Technology'   },
+  { query: 'Fullstack Node Developer',     location: 'Riyadh',               sector: 'Technology'   },
+  { query: 'Cloud Architect AWS',          location: 'Dubai',                sector: 'Technology'   },
+  { query: 'IT Support Specialist',        location: 'Abu Dhabi',            sector: 'Technology'   },
+  { query: 'Cybersecurity Consultant',     location: 'Riyadh',               sector: 'Technology'   },
+  { query: 'Data Analyst Python',          location: 'Dubai',                sector: 'Technology'   },
+  { query: 'Scrum Master',                 location: 'Dubai',                sector: 'Technology'   },
+  { query: 'SEO Specialist',               location: 'Abu Dhabi',            sector: 'Technology'   },
+  { query: 'Network Engineer',             location: 'Qatar',                sector: 'Technology'   },
+  { query: 'ERP Consultant',               location: 'Saudi Arabia',         sector: 'Technology'   },
+  { query: 'UI UX Researcher',             location: 'Dubai',                sector: 'Technology'   },
+  // Healthcare (Neu)
+  { query: 'Orthodontist',                 location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Pediatrician',                 location: 'Abu Dhabi',            sector: 'Healthcare'   },
+  { query: 'Dental Assistant',             location: 'Riyadh',               sector: 'Healthcare'   },
+  { query: 'Nursing Assistant',            location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Medical Receptionist',         location: 'Qatar',                sector: 'Healthcare'   },
+  { query: 'Home Care Nurse',              location: 'Abu Dhabi',            sector: 'Healthcare'   },
+  { query: 'Clinical Pharmacist',          location: 'Saudi Arabia',         sector: 'Healthcare'   },
+  { query: 'Radiology Technician',         location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Veterinarian',                 location: 'Dubai',                sector: 'Healthcare'   },
+  { query: 'Laser Hair Removal Nurse',     location: 'Riyadh',               sector: 'Healthcare'   },
+  // Retail, Sales & Admin (Neu)
+  { query: 'B2B Sales Executive',          location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Key Account Manager',          location: 'Riyadh',               sector: 'Retail'       },
+  { query: 'Real Estate Broker',           location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Telesales Representative',     location: 'Abu Dhabi',            sector: 'Retail'       },
+  { query: 'Customer Success Manager',     location: 'Dubai',                sector: 'Retail'       },
+  { query: 'Executive Secretary',          location: 'Riyadh',               sector: 'Administration'},
+  { query: 'HR Generalist',                location: 'Dubai',                sector: 'Administration'},
+  { query: 'Digital Marketing Executive',  location: 'Dubai',                sector: 'Technology'   },
+  // Education & Finance (Neu)
+  { query: 'Early Childhood Teacher',      location: 'Dubai',                sector: 'Education'    },
+  { query: 'SEN Teacher',                  location: 'Abu Dhabi',            sector: 'Education'    },
+  { query: 'IELTS Instructor',             location: 'Riyadh',               sector: 'Education'    },
+  { query: 'Corporate Trainer',            location: 'Dubai',                sector: 'Education'    },
+  { query: 'Chief Financial Officer',      location: 'Riyadh',               sector: 'Finance'      },
+  { query: 'Tax Accountant',               location: 'Dubai',                sector: 'Finance'      },
+  { query: 'Internal Auditor',             location: 'Abu Dhabi',            sector: 'Finance'      },
+  { query: 'Credit Risk Analyst',          location: 'Dubai',                sector: 'Finance'      },
+  // --- GCC Erweiterung: Kuwait, Katar, Bahrain & Oman ---
+  { query: 'Petroleum Engineer',           location: 'Kuwait',               sector: 'Engineering'  },
+  { query: 'Civil Engineer',               location: 'Kuwait City',          sector: 'Construction' },
+  { query: 'Registered Nurse',             location: 'Kuwait',               sector: 'Healthcare'   },
+  { query: 'Sales Executive',              location: 'Kuwait',               sector: 'Retail'       },
+  { query: 'Oil and Gas Technician',       location: 'Doha',                 sector: 'Engineering'  },
+  { query: 'Construction Manager',         location: 'Qatar',                sector: 'Construction' },
+  { query: 'Hospitality Staff',            location: 'Doha',                 sector: 'Hospitality'  },
+  { query: 'Financial Auditor',            location: 'Bahrain',              sector: 'Finance'      },
+  { query: 'IT Systems Administrator',     location: 'Manama, Bahrain',      sector: 'Technology'   },
+  { query: 'Logistics Manager',            location: 'Oman',                 sector: 'Logistics'    },
+  { query: 'Electrical Engineer',          location: 'Muscat, Oman',         sector: 'Construction' },
+  { query: 'English Teacher',              location: 'Kuwait',               sector: 'Education'    }
 ];
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
