@@ -8,7 +8,7 @@ type Step = {
   target: string;
   title: string;
   content: string;
-  placement?: 'top' | 'bottom' | 'left' | 'right';
+  placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
 };
 
 const STEPS_EN: Step[] = [
@@ -16,7 +16,7 @@ const STEPS_EN: Step[] = [
     target:    '#tour-profile',
     title:     '👋 Welcome to MenaJob AI!',
     content:   'Start by filling out your Smart Profile or uploading your CV so our AI can find the perfect jobs for you.',
-    placement: 'right',
+    placement: 'center',
   },
   {
     target:    '#tour-search',
@@ -37,7 +37,7 @@ const STEPS_AR: Step[] = [
     target:    '#tour-profile',
     title:     '👋 مرحباً بك في MenaJob AI!',
     content:   'ابدأ بملء ملفك الذكي أو رفع سيرتك الذاتية حتى يتمكن الذكاء الاصطناعي من إيجاد أفضل الوظائف لك.',
-    placement: 'right',
+    placement: 'center',
   },
   {
     target:    '#tour-search',
@@ -76,34 +76,47 @@ export function OnboardingTour({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   const positionTooltip = () => {
     const step = steps[currentStep];
-    const el   = document.querySelector(step.target);
-    if (!el) return;
-
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const rect = el.getBoundingClientRect();
     const placement = step.placement ?? 'bottom';
+    const TW = 320;
+    const TH = 160;
+
+    // Center placement — no element needed
+    if (placement === 'center') {
+      setTooltipStyle({
+        top:  window.innerHeight / 2 - TH / 2,
+        left: window.innerWidth  / 2 - TW / 2,
+      });
+      return;
+    }
+
+    const el = document.querySelector(step.target);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Use getBoundingClientRect — already viewport-relative, no scroll offset needed
+    const rect = el.getBoundingClientRect();
 
     let top  = 0;
     let left = 0;
-    const TW = 320; // tooltip width
-    const TH = 160; // tooltip height approx
 
     if (placement === 'bottom') {
-      top  = rect.bottom + window.scrollY + 12;
-      left = rect.left + window.scrollX + rect.width / 2 - TW / 2;
+      top  = rect.bottom + 12;
+      left = rect.left + rect.width / 2 - TW / 2;
     } else if (placement === 'top') {
-      top  = rect.top + window.scrollY - TH - 12;
-      left = rect.left + window.scrollX + rect.width / 2 - TW / 2;
+      top  = rect.top - TH - 12;
+      left = rect.left + rect.width / 2 - TW / 2;
     } else if (placement === 'right') {
-      top  = rect.top + window.scrollY + rect.height / 2 - TH / 2;
-      left = rect.right + window.scrollX + 12;
+      top  = rect.top + rect.height / 2 - TH / 2;
+      left = rect.right + 12;
     } else {
-      top  = rect.top + window.scrollY + rect.height / 2 - TH / 2;
-      left = rect.left + window.scrollX - TW - 12;
+      top  = rect.top + rect.height / 2 - TH / 2;
+      left = rect.left - TW - 12;
     }
 
     // Keep within viewport
-    left = Math.max(12, Math.min(left, window.innerWidth - TW - 12));
+    left = Math.max(12, Math.min(left, window.innerWidth  - TW - 12));
+    top  = Math.max(12, Math.min(top,  window.innerHeight - TH - 12));
+
     setTooltipStyle({ top, left });
   };
 
