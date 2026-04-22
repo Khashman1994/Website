@@ -289,13 +289,13 @@ export default async function JobPage({ params }: { params: { id: string } }) {
               Apply for this Job
             </a>
             {/* Button 2: AI Match */}
-            <Link href="/signup"
+            <Link href="/"
               className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-95 w-full sm:w-auto justify-center">
-              ✨ Get Your AI Match Score
+              🚀 Let AI analyze your chances
             </Link>
           </div>
           <p className="text-slate-400 text-xs mt-3">
-            Apply button opens the original job posting · AI Match is free
+            Apply button opens the original job posting
           </p>
         </div>
 
