@@ -281,13 +281,21 @@ export default async function JobPage({ params }: { params: { id: string } }) {
 
         {/* CTA */}
         <div className="text-center">
-          <a href={job.url} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-200 active:scale-95">
-            <ExternalLink className="w-5 h-5" />
-            Apply for this Job
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {/* Button 1: Apply */}
+            <a href={job.url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-200 active:scale-95 w-full sm:w-auto justify-center">
+              <ExternalLink className="w-5 h-5" />
+              Apply for this Job
+            </a>
+            {/* Button 2: AI Match */}
+            <Link href="/signup"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-95 w-full sm:w-auto justify-center">
+              ✨ Get Your AI Match Score
+            </Link>
+          </div>
           <p className="text-slate-400 text-xs mt-3">
-            Opens the original job posting
+            Apply button opens the original job posting · AI Match is free
           </p>
         </div>
 
