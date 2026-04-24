@@ -11,7 +11,7 @@ import { ChatAssistant } from '@/components/dashboard/ChatAssistant';
 import { Button } from '@/components/ui/Button';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { UserProfile, JobMatch, JobFilters } from '@/lib/types';
-import { Search, Loader2, AlertCircle, LogOut, Upload, Sparkles, X, UploadCloud, AlertTriangle, Heart, Home } from 'lucide-react';
+import { Search, Loader2, AlertCircle, LogOut, Upload, Sparkles, X, UploadCloud, AlertTriangle, Heart, Home, Briefcase } from 'lucide-react';
 import { JobListSkeleton } from '@/components/dashboard/SkeletonLoader';
 import { ToastContainer } from '@/components/ui/Toast';
 import { AnimatePresence } from 'framer-motion';
@@ -911,6 +911,15 @@ function PageHeader({ userEmail, isLoggedIn, onSignOut, lang, t }: {
             >
               <Home className="w-3.5 h-3.5" />
               <span className="hidden sm:block">{isAr ? 'الرئيسية' : 'Home'}</span>
+            </Link>
+            {/* Browse Jobs button */}
+            <Link
+              href="/jobs"
+              title={isAr ? 'تصفح الوظائف' : 'Browse Jobs'}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white hover:bg-orange-600 rounded-lg transition-colors text-xs font-semibold"
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>{isAr ? 'كل الوظائف' : 'Browse Jobs'}</span>
             </Link>
             <LanguageSwitcher />
             {isLoggedIn && (

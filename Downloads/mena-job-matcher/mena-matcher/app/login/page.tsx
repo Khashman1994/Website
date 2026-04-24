@@ -33,7 +33,8 @@ function LoginPageInner() {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
-      router.push('/dashboard');
+      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
       router.refresh();
     } catch (err: any) {
       setError(err.message || (isAr ? 'فشل تسجيل الدخول' : 'Login failed'));
@@ -46,9 +47,12 @@ function LoginPageInner() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
+    const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+      },
     });
     if (oauthError) {
       setError(oauthError.message);
@@ -84,6 +88,17 @@ function LoginPageInner() {
                 {isAr
                   ? 'انتهت جلستك بسبب عدم النشاط لمدة ساعة. يرجى تسجيل الدخول مجدداً.'
                   : 'Your session expired after 1 hour of inactivity. Please sign in again.'}
+              </span>
+            </div>
+          )}
+          {/* Job redirect banner */}
+          {searchParams.get('redirectTo')?.startsWith('/jobs/') && (
+            <div className="mb-5 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-2 text-sm text-orange-800">
+              <span>🔒</span>
+              <span>
+                {isAr
+                  ? 'يرجى تسجيل الدخول لعرض تفاصيل الوظيفة.'
+                  : 'Please sign in to view the full job details.'}
               </span>
             </div>
           )}

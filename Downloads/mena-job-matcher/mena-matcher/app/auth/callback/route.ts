@@ -1,13 +1,13 @@
 // app/auth/callback/route.ts
-// Handles OAuth redirect, email confirmation, and password recovery
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
-  const code = searchParams.get('code');
-  const type = searchParams.get('type'); // 'recovery' for password reset
-  const error = searchParams.get('error');
+  const code       = searchParams.get('code');
+  const type       = searchParams.get('type');
+  const redirectTo = searchParams.get('redirectTo');
+  const error      = searchParams.get('error');
 
   if (error) {
     console.error('[auth/callback] OAuth error:', error);
@@ -15,7 +15,28 @@ export async function GET(req: NextRequest) {
   }
 
   if (code) {
-    const supabase = createServerSupabaseClient();
+    // Build the response first so we can mutate its cookies
+    const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/dashboard';
+    const response = NextResponse.redirect(`${origin}${destination}`);
+
+    // Create SSR client that writes cookies directly to the response
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (exchangeError) {
@@ -23,12 +44,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
 
-    // ── Password recovery flow → redirect to update-password page ─────────
+    // Password recovery flow
     if (type === 'recovery') {
-      return NextResponse.redirect(`${origin}/update-password`);
+      const recoveryRes = NextResponse.redirect(`${origin}/update-password`);
+      // Copy session cookies to recovery response
+      response.cookies.getAll().forEach(cookie => {
+        recoveryRes.cookies.set(cookie.name, cookie.value);
+      });
+      return recoveryRes;
     }
 
-    // ── New OAuth user: create profile row ────────────────────────────────
+    // New OAuth user: create profile row
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -55,7 +81,8 @@ export async function GET(req: NextRequest) {
       console.warn('[auth/callback] Profile upsert warning:', profileErr);
     }
 
-    return NextResponse.redirect(`${origin}/dashboard`);
+    // Return response with session cookies set
+    return response;
   }
 
   return NextResponse.redirect(`${origin}/login`);

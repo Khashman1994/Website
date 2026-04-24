@@ -42,8 +42,8 @@ export function Navbar() {
   };
 
   const navLinks = isAr
-    ? [{ href: '/', label: 'الرئيسية' }, { href: '/about', label: 'عن المنصة' }, { href: '/contact', label: 'تواصل معنا' }]
-    : [{ href: '/', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/contact', label: 'Contact' }];
+    ? [{ href: '/', label: 'الرئيسية' }, { href: '/jobs', label: 'كل الوظائف' }, { href: '/about', label: 'عن المنصة' }, { href: '/contact', label: 'تواصل معنا' }]
+    : [{ href: '/', label: 'Home' }, { href: '/jobs', label: 'Browse Jobs' }, { href: '/about', label: 'About' }, { href: '/contact', label: 'Contact' }];
 
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent'}`}
@@ -61,19 +61,33 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-sm font-medium transition-colors ${
-                  pathname === link.href
-                    ? 'text-primary-500'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-              >
-                {link.label}
-              </Link>
+              link.href === '/jobs' ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                    pathname === link.href
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors ${
+                    pathname === link.href
+                      ? 'text-primary-500'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </div>
 

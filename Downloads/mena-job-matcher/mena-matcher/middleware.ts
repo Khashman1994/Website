@@ -40,6 +40,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
+  // Protect /jobs/[id] — only the listing page /jobs is public
+  if (pathname.match(/^\/jobs\/.+/) && !user) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('redirectTo', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   // Redirect logged-in users away from auth pages
   if ((pathname === '/login' || pathname === '/signup') && user) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
