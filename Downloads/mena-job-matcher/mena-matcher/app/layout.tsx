@@ -1,7 +1,11 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
+import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import { CookieBanner } from '@/components/ui/CookieBanner';
 
 export const metadata: Metadata = {
   title: 'MENA Job Matcher | مطابق الوظائف بالذكاء الاصطناعي',
@@ -23,8 +27,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <LanguageProvider>{children}</LanguageProvider>
+        <Script id="gtag-consent-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              analytics_storage: 'denied',
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+            });
+          `}
+        </Script>
+        <LanguageProvider>
+          {children}
+          <CookieBanner />
+        </LanguageProvider>
+        <Analytics />
       </body>
+      <GoogleAnalytics gaId="G-S14NGZGVME" />
     </html>
   );
 }

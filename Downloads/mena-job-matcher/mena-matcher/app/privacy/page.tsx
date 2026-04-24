@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     { title: '3. الذكاء الاصطناعي', body: 'نستخدم OpenAI GPT-4o لتحليل سيرتك الذاتية ومطابقتها بالوظائف. يتم إرسال نص سيرتك الذاتية إلى خوادم OpenAI وفق سياسة الخصوصية الخاصة بهم.' },
     { title: '4. التخزين والأمان', body: 'نخزن بياناتك في Supabase بتشفير كامل. نستخدم Row Level Security لضمان وصولك فقط لبياناتك.' },
     { title: '5. حقوقك (GDPR)', body: 'يحق لك طلب عرض بياناتك، تصحيحها، حذفها، أو تصديرها في أي وقت عبر التواصل معنا.' },
-    { title: '6. ملفات تعريف الارتباط', body: 'نستخدم ملفات تعريف الارتباط الضرورية فقط لإدارة الجلسات. لا نستخدم ملفات تتبع إعلانية.' },
+    { title: '6. ملفات تعريف الارتباط', body: 'نستخدم ملفات تعريف الارتباط الضرورية لإدارة الجلسات، وملفات تعريف الارتباط الخاصة بـ Google Analytics 4 لتحليل حركة المرور — فقط بعد موافقتك الصريحة عبر لافتة الموافقة. يمكنك سحب موافقتك في أي وقت من تذييل الموقع.' },
     { title: '7. التواصل', body: 'لأي استفسار بشأن الخصوصية، تواصل معنا عبر صفحة الاتصال.' },
   ] : [
     { title: '1. Data Collection', body: 'We collect information you directly provide, such as name, email, and CV data when you register.' },
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
     { title: '3. Artificial Intelligence', body: 'We use OpenAI GPT-4o to analyse your CV and match it with jobs. Your CV text is sent to OpenAI servers under their privacy policy.' },
     { title: '4. Storage & Security', body: 'We store your data in Supabase with full encryption. We use Row Level Security to ensure only you can access your data.' },
     { title: '5. Your Rights (GDPR)', body: 'You have the right to view, correct, delete, or export your data at any time by contacting us.' },
-    { title: '6. Cookies', body: 'We only use necessary session cookies. We do not use advertising tracking cookies.' },
+    { title: '6. Cookies', body: 'We use necessary session cookies, plus Google Analytics 4 cookies to analyse traffic — only after you grant explicit consent via the banner. You can withdraw consent at any time from the site footer.' },
     { title: '7. Contact', body: 'For any privacy inquiries, contact us via our Contact page.' },
   ];
 

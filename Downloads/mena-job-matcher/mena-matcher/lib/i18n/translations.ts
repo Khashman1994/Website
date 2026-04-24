@@ -126,6 +126,14 @@ export const translations = {
     // Language switcher
     switchToArabic: 'العربية',
     switchToEnglish: 'English',
+
+    // Cookie banner
+    cookieBannerTitle: 'Cookie consent',
+    cookieBannerText: "We use cookies to improve your experience and analyze our traffic. By clicking 'Accept', you consent to our use of cookies.",
+    cookieAccept: 'Accept All',
+    cookieReject: 'Reject',
+    cookieLearnMore: 'Learn more',
+    cookieSettings: 'Cookie Settings',
   },
 
   ar: {
@@ -251,6 +259,14 @@ export const translations = {
     // Language switcher
     switchToArabic: 'العربية',
     switchToEnglish: 'English',
+
+    // Cookie banner
+    cookieBannerTitle: 'موافقة ملفات تعريف الارتباط',
+    cookieBannerText: "نحن نستخدم ملفات تعريف الارتباط لتحسين تجربتك وتحليل حركة المرور الخاصة بنا. بالنقر على 'قبول'، فإنك توافق على استخدامنا لملفات تعريف الارتباط.",
+    cookieAccept: 'قبول الكل',
+    cookieReject: 'رفض',
+    cookieLearnMore: 'اعرف المزيد',
+    cookieSettings: 'إعدادات ملفات تعريف الارتباط',
   },
 } as const;
 

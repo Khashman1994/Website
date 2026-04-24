@@ -3,10 +3,16 @@
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LanguageContext';
+import { CONSENT_RESET_EVENT } from '@/components/ui/CookieBanner';
 
 export function Footer() {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const isAr = lang === 'ar';
+
+  const handleCookieSettings = () => {
+    localStorage.removeItem('mena-cookie-consent');
+    window.dispatchEvent(new Event(CONSENT_RESET_EVENT));
+  };
 
   return (
     <footer className="bg-secondary-900 text-white" dir={isAr ? 'rtl' : 'ltr'}>
@@ -64,6 +70,15 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={handleCookieSettings}
+                  className="text-secondary-400 hover:text-white text-sm transition-colors"
+                >
+                  {t.cookieSettings}
+                </button>
+              </li>
             </ul>
           </div>
         </div>
