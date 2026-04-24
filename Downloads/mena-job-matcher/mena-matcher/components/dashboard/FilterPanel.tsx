@@ -216,16 +216,24 @@ function getCurrency(location: string, lang: string) {
 interface FilterPanelProps {
   onApplyFilters: (filters: JobFilters) => void;
   isLoading?: boolean;
+  initialKeyword?: string;
 }
 
-export function FilterPanel({ onApplyFilters, isLoading }: FilterPanelProps) {
+export function FilterPanel({ onApplyFilters, isLoading, initialKeyword = '' }: FilterPanelProps) {
   const { t, lang } = useLang();
-  const [location,       setLocation]       = useState('Saudi Arabia'); // default: Saudi Arabia
+  const isAr = lang === 'ar';
+  const [keyword,        setKeyword]        = useState(initialKeyword);
+  const [location,       setLocation]       = useState('Saudi Arabia');
   const [industry,       setIndustry]       = useState('');
   const [employmentType, setEmploymentType] = useState<JobFilters['employmentType']>();
   const [remote,         setRemote]         = useState<boolean | undefined>();
   const [salaryMin,      setSalaryMin]      = useState('');
   const [salaryMax,      setSalaryMax]      = useState('');
+
+  // Update keyword when analyzeJob title arrives (async)
+  useEffect(() => {
+    if (initialKeyword) setKeyword(initialKeyword);
+  }, [initialKeyword]);
 
   // Dynamic currency based on selected location
   const currency = getCurrency(location, lang);
@@ -233,7 +241,8 @@ export function FilterPanel({ onApplyFilters, isLoading }: FilterPanelProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const filters: JobFilters = {};
-    filters.location = location || 'Saudi Arabia'; // always send a location
+    if (keyword)        filters.keyword        = keyword;
+    filters.location = location || 'Saudi Arabia';
     if (industry)       filters.industry       = industry;
     if (employmentType) filters.employmentType = employmentType;
     if (remote !== undefined) filters.remote   = remote;
@@ -243,7 +252,8 @@ export function FilterPanel({ onApplyFilters, isLoading }: FilterPanelProps) {
   };
 
   const handleReset = () => {
-    setLocation('Saudi Arabia'); // reset to default, not empty
+    setKeyword('');
+    setLocation('Saudi Arabia');
     setIndustry(''); setEmploymentType(undefined);
     setRemote(undefined); setSalaryMin(''); setSalaryMax('');
     onApplyFilters({ location: 'Saudi Arabia' });
@@ -281,6 +291,22 @@ export function FilterPanel({ onApplyFilters, isLoading }: FilterPanelProps) {
 
       <CardContent className="py-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* Keyword / Target Job Title */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 mb-2">
+              <Briefcase className="w-4 h-4 flex-shrink-0" />
+              {isAr ? 'المسمى الوظيفي أو الكلمات المفتاحية' : 'Target Job Title or Keywords'}
+            </label>
+            <input
+              type="text"
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              placeholder={isAr ? 'مثال: محاسب، سائق مكتب...' : 'e.g., Accountant, Office Driver...'}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              dir={isAr ? 'rtl' : 'ltr'}
+            />
+          </div>
 
           {/* Location — Searchable Combobox */}
           <div>
