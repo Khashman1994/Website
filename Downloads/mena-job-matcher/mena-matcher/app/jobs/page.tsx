@@ -246,6 +246,12 @@ export default function JobsPage() {
                       >
                         🔒 {i18n.viewDetails} <ChevronRight className="w-3 h-3" />
                       </Link>
+                      <Link
+                        href={`/dashboard?analyzeJob=${job.id}`}
+                        className="flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700 whitespace-nowrap"
+                      >
+                        ✨ {isAr ? 'مطابقة ذكية' : 'AI Match'}
+                      </Link>
                       <a
                         href={job.url}
                         target="_blank"

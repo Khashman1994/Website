@@ -1374,6 +1374,12 @@ function PaywallModal({ isAr, onClose }: { isAr: boolean; onClose: () => void })
           >
             {isAr ? 'عرض جميع الباقات' : 'View all plans'}
           </a>
+          <a
+            href="/jobs"
+            className="block w-full py-3 border-2 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 font-medium rounded-xl transition-all text-sm"
+          >
+            🔍 {isAr ? 'تصفح الوظائف مجاناً' : 'Browse jobs for free'}
+          </a>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 text-sm transition-colors mt-1"
