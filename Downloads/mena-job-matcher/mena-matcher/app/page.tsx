@@ -163,16 +163,6 @@ export default function LandingPage() {
   const [isModalOpen,   setIsModalOpen]   = useState(false);
   const [modalStartTab, setModalStartTab] = useState<'upload' | 'manual'>('upload');
 
-  // Redirect all logged-in users to dashboard (empty state handled there)
-  useEffect(() => {
-    async function check() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) router.replace('/dashboard');
-    }
-    check();
-  }, []);
-
   const stats = [
     { icon: Zap,   value: '<30s', label: isAr ? 'وقت التحليل'        : 'Analysis Time'         },
     { icon: Star,  value: '95%',  label: isAr ? 'معدل رضا المستخدمين': 'User Satisfaction'      },
