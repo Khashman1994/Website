@@ -47,11 +47,11 @@ export async function generateMetadata(
     };
   }
 
-  const title       = `${job.title} at ${job.company} in ${job.location} | MenaJob AI`;
-  const description = (job.description ?? '')
-    .replace(/[\r\n]+/g, ' ')
-    .trim()
-    .slice(0, 155) + (job.description?.length > 155 ? '...' : '');
+  const title       = `${job.title} Jobs in ${job.location} | Apply Now | MenaJob AI`;
+  const rawDesc     = (job.description ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const description = rawDesc.length > 0
+    ? (rawDesc.slice(0, 147) + (rawDesc.length > 147 ? '...' : ''))
+    : `Apply for ${job.title} at ${job.company} in ${job.location}. Find the best jobs in MENA with MenaJob AI.`;
   const pageUrl     = `${BASE_URL}/jobs/${job.id}`;
   const ogImage     = `${BASE_URL}/api/og?title=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}&location=${encodeURIComponent(job.location)}`;
 
