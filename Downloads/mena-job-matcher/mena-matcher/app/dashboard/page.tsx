@@ -1,6 +1,6 @@
 ﻿'use client';
 // app/dashboard/page.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SessionTimeout } from '@/components/SessionTimeout';
@@ -22,7 +22,7 @@ import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 
 type Tab = 'all' | 'saved';
 
-export default function DashboardPage() {
+function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const analyzeJobId = searchParams.get('analyzeJob');
@@ -890,6 +890,14 @@ export default function DashboardPage() {
       <PaywallModal isAr={isAr} onClose={() => setShowPaywall(false)} />
     )}
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <DashboardInner />
+    </Suspense>
   );
 }
 
