@@ -290,6 +290,14 @@ export default function LandingPage() {
                 </button>
               </motion.div>
 
+              {/* Browse Jobs hint */}
+              <motion.p {...fadeUp(0.32)} className="text-sm text-slate-400 -mt-7 mb-8">
+                {isAr
+                  ? <><Link href="/jobs" className="text-slate-500 hover:text-primary-500 underline underline-offset-2 transition-colors">تصفح جميع الوظائف يدوياً مجاناً</Link> — بدون ذكاء اصطناعي</>
+                  : <>Prefer the traditional way? <Link href="/jobs" className="text-slate-500 hover:text-primary-500 underline underline-offset-2 transition-colors">Browse all jobs manually for free</Link>.</>
+                }
+              </motion.p>
+
               {/* Trust signals */}
               <motion.div {...fadeUp(0.36)} className="flex flex-wrap gap-4">
                 {[
