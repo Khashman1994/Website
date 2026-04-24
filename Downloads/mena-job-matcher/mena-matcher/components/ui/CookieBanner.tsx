@@ -10,13 +10,6 @@ type ConsentChoice = 'accepted' | 'rejected';
 const STORAGE_KEY = 'mena-cookie-consent';
 export const CONSENT_RESET_EVENT = 'mena-cookie-consent-reset';
 
-declare global {
-  interface Window {
-    dataLayer: unknown[];
-    gtag: (...args: unknown[]) => void;
-  }
-}
-
 function gtag(...args: unknown[]) {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
