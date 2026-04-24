@@ -18,6 +18,7 @@ export interface UserProfile {
 export type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'lead' | 'executive';
 
 export interface JobFilters {
+  keyword?: string;
   location?: string;
   industry?: string;
   employmentType?: 'full-time' | 'part-time' | 'contract' | 'freelance';
