@@ -249,6 +249,10 @@ export default function JobsPage() {
                       <Link
                         href={`/dashboard?analyzeJob=${job.id}`}
                         className="flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700 whitespace-nowrap"
+                        onClick={(e) => {
+                          // If middleware redirects to login, ensure analyzeJob param is preserved
+                          // middleware will append ?redirectTo=/dashboard?analyzeJob=ID
+                        }}
                       >
                         ✨ {isAr ? 'مطابقة ذكية' : 'AI Match'}
                       </Link>

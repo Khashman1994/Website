@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { JobMatch } from '@/lib/types';
+import { MatchFeedback } from './MatchFeedback';
 import {
   MapPin, Building2, DollarSign, ChevronDown, ChevronUp,
   CheckCircle2, AlertCircle, Lightbulb, ExternalLink,
@@ -178,11 +179,12 @@ interface JobCardProps {
   isLocked?: boolean;
   onUnlock?: (jobId: string) => void;
   userProfile?: any;
-  aiPreloaded?: boolean; // true for jobs 0-4 that got AI analysis upfront
+  aiPreloaded?: boolean;
+  autoExpand?: boolean; // auto-expand and trigger AI analysis (from analyzeJob param)
 }
 
-export function JobCard({ job, index, initialSaved = false, onSaveToggle, isLocked = false, onUnlock, userProfile, aiPreloaded = false }: JobCardProps) {
-  const [isExpanded, setIsExpanded]   = useState(false);
+export function JobCard({ job, index, initialSaved = false, onSaveToggle, isLocked = false, onUnlock, userProfile, aiPreloaded = false, autoExpand = false }: JobCardProps) {
+  const [isExpanded, setIsExpanded]   = useState(autoExpand);
   const [aiLoading, setAiLoading]     = useState(false);
   const [aiInsights, setAiInsights]   = useState(job.insights ?? null);
   const [aiScore, setAiScore]         = useState<number | null>(null);
@@ -193,6 +195,14 @@ export function JobCard({ job, index, initialSaved = false, onSaveToggle, isLock
   const isFreeJob   = index < 2; // first 2 fully free
   // Jobs 2-4: AI already loaded, just instant reveal. Jobs 5+: need JIT fetch
   const needsAiFetch = !aiPreloaded && index >= 5;
+
+  // Auto-trigger AI analysis when this card is the target of analyzeJob param
+  useEffect(() => {
+    if (autoExpand && !hasInsights && !aiLoading) {
+      setTimeout(() => fetchAiAnalysis(), 800);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoExpand]);
 
   async function fetchAiAnalysis() {
     if (aiLoading || hasInsights) return;
@@ -373,6 +383,7 @@ export function JobCard({ job, index, initialSaved = false, onSaveToggle, isLock
                 >
                   <div className="pt-4 border-t border-slate-50 mt-4">
                     <InsightsBody job={{ ...job, insights }} t={t} />
+                    <MatchFeedback jobId={job.id} aiScore={aiScore ?? job.matchScore} />
                   </div>
                 </motion.div>
               )}

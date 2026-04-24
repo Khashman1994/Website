@@ -35,15 +35,18 @@ export async function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
-  // Protect /dashboard
-  if (pathname.startsWith('/dashboard') && !user) {
-    return NextResponse.redirect(new URL('/login', req.url));
-  }
-
   // Protect /jobs/[id] — only the listing page /jobs is public
   if (pathname.match(/^\/jobs\/.+/) && !user) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('redirectTo', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Protect /dashboard — preserve full URL including query params (e.g. ?analyzeJob=)
+  if (pathname.startsWith('/dashboard') && !user) {
+    const loginUrl = new URL('/login', req.url);
+    const fullPath = pathname + (req.nextUrl.search || '');
+    loginUrl.searchParams.set('redirectTo', fullPath);
     return NextResponse.redirect(loginUrl);
   }
 

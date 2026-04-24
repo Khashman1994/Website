@@ -1,7 +1,7 @@
 ﻿'use client';
 // app/dashboard/page.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SessionTimeout } from '@/components/SessionTimeout';
 import { ProfileCard } from '@/components/dashboard/ProfileCard';
@@ -24,6 +24,8 @@ type Tab = 'all' | 'saved';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const analyzeJobId = searchParams.get('analyzeJob');
   const { t, lang, setLang } = useLang();
   const isAr = lang === 'ar';
 
@@ -95,6 +97,19 @@ export default function DashboardPage() {
 
     return () => clearTimeout(timer);
   }, [lang]);
+
+  // Scroll to analyzeJob card when jobs are loaded
+  useEffect(() => {
+    if (!analyzeJobId || jobs.length === 0) return;
+    const el = document.getElementById(`job-${analyzeJobId}`);
+    if (el) {
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2'), 3000);
+      }, 500);
+    }
+  }, [analyzeJobId, jobs]);
   useEffect(() => {
     async function init() {
       try {
@@ -736,9 +751,13 @@ export default function DashboardPage() {
                               {topJobs.map((job, index) => {
                                 const locked = index > 0 && userTier !== 'pro' && !unlockedJobIds.has(job.id);
                                 return (
-                                  <JobCard key={job.id} job={job} index={index}
-                                    initialSaved={savedJobIds.has(job.id)} onSaveToggle={handleSaveToggle}
-                                    isLocked={locked} onUnlock={handleUnlockJob} userProfile={profile} aiPreloaded={index < 5} />
+                                  <div key={job.id} id={`job-${job.id}`} className="transition-all duration-300">
+                                    <JobCard job={job} index={index}
+                                      initialSaved={savedJobIds.has(job.id)} onSaveToggle={handleSaveToggle}
+                                      isLocked={locked} onUnlock={handleUnlockJob} userProfile={profile}
+                                      aiPreloaded={index < 5}
+                                      autoExpand={job.id === analyzeJobId} />
+                                  </div>
                                 );
                               })}
                             </AnimatePresence>
@@ -758,9 +777,13 @@ export default function DashboardPage() {
                                 {possible.map((job, index) => {
                                   const locked = userTier !== 'pro' && !unlockedJobIds.has(job.id);
                                   return (
-                                    <JobCard key={job.id} job={job} index={topJobs.length + index}
-                                      initialSaved={savedJobIds.has(job.id)} onSaveToggle={handleSaveToggle}
-                                      isLocked={locked} onUnlock={handleUnlockJob} userProfile={profile} aiPreloaded={index < 5} />
+                                    <div key={job.id} id={`job-${job.id}`} className="transition-all duration-300">
+                                      <JobCard job={job} index={topJobs.length + index}
+                                        initialSaved={savedJobIds.has(job.id)} onSaveToggle={handleSaveToggle}
+                                        isLocked={locked} onUnlock={handleUnlockJob} userProfile={profile}
+                                        aiPreloaded={index < 5}
+                                        autoExpand={job.id === analyzeJobId} />
+                                    </div>
                                   );
                                 })}
                               </AnimatePresence>
