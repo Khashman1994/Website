@@ -1,5 +1,6 @@
 // app/api/payments/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
 const BASE_URL = process.env.MYFATOORAH_BASE_URL  ?? 'https://api.myfatoorah.com';
@@ -11,6 +12,16 @@ const PLANS: Record<string, { value: number; description: string }> = {
   coins_50:    { value: 10.00, description: 'MenaJob AI — 50 Stars'            },
   pro_monthly: { value: 19.99, description: 'MenaJob AI Pro — 500 Stars'      },
 };
+
+// Admin client — bypasses RLS; only used server-side to write the
+// (payment_id → user_id) binding into payments_pending.
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   // ── Env check ─────────────────────────────────────────────────────────────
@@ -91,6 +102,24 @@ export async function POST(req: NextRequest) {
     const paymentUrl = data.Data?.PaymentURL;
     const invoiceId  = data.Data?.InvoiceId;
     console.log(`[myfatoorah] ✓ Invoice=${invoiceId} | PaymentURL=${paymentUrl}`);
+
+    if (!invoiceId) {
+      console.error('[myfatoorah] ❌ No InvoiceId in response — cannot bind payment to user');
+      return NextResponse.json({ error: 'Payment init returned no invoice id' }, { status: 502 });
+    }
+
+    // ── Bind payment → user server-side (cannot be spoofed via URL) ──────────
+    const admin = adminClient();
+    const { error: bindErr } = await admin.from('payments_pending').insert({
+      payment_id: String(invoiceId),
+      user_id:    user.id,
+      plan_id:    planId,
+    });
+    if (bindErr) {
+      console.error('[myfatoorah] ❌ payments_pending insert failed:', bindErr.message);
+      return NextResponse.json({ error: 'Could not record payment binding' }, { status: 500 });
+    }
+    console.log(`[myfatoorah] ✓ Bound invoice ${invoiceId} → user ${user.id} (plan=${planId})`);
 
     return NextResponse.json({ paymentUrl, invoiceId });
 

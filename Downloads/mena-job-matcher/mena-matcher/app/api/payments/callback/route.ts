@@ -1,5 +1,8 @@
 // app/api/payments/callback/route.ts
-// MyFatoorah redirects user HERE after payment — verifies + credits + logs
+// MyFatoorah redirects user HERE after payment — verifies + credits + logs.
+// SECURITY: user_id and plan_id are resolved from the server-side
+// `payments_pending` binding (keyed by MyFatoorah's verified InvoiceId),
+// NOT from URL query params. The URL userId/planId are ignored.
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,7 +15,7 @@ const APP_URL  = process.env.NEXT_PUBLIC_SITE_URL
 // Credits granted per plan
 const PLAN_CREDITS: Record<string, { credits: number; tier: string; amount: number }> = {
   coins_25:    { credits: 25,  tier: 'free', amount: 4.99  },
-  coins_50:    { credits: 50,  tier: 'free', amount: 9.99 },
+  coins_50:    { credits: 50,  tier: 'free', amount: 9.99  },
   pro_monthly: { credits: 500, tier: 'pro',  amount: 19.99 },
 };
 
@@ -28,20 +31,17 @@ function adminClient() {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const paymentId = searchParams.get('paymentId');
-  const planId    = searchParams.get('planId')    ?? '';
-  const userId    = searchParams.get('userId')    ?? '';
 
-  console.log(`[callback] paymentId=${paymentId} planId=${planId} userId=${userId}`);
+  console.log(`[callback] paymentId=${paymentId}`);
 
-  // ── Missing params ─────────────────────────────────────────────────────────
-  if (!paymentId || !userId || !planId) {
-    console.error('[callback] Missing required params');
+  if (!paymentId) {
+    console.error('[callback] Missing paymentId');
     return NextResponse.redirect(`${APP_URL}/payment-failed?reason=missing_params`);
   }
 
   const sb = adminClient();
 
-  // ── Step 1: Idempotency check — prevent double-crediting ───────────────────
+  // ── Step 1: Idempotency check — prevent double-crediting ──────────────────
   const { data: existing } = await sb
     .from('payments')
     .select('id, status')
@@ -50,13 +50,13 @@ export async function GET(req: NextRequest) {
 
   if (existing) {
     console.log(`[callback] Payment ${paymentId} already processed (status: ${existing.status})`);
-    // Already credited — redirect to success silently
     return NextResponse.redirect(`${APP_URL}/dashboard?payment=success`);
   }
 
   // ── Step 2: Verify with MyFatoorah server-to-server ───────────────────────
   let invoiceStatus = '';
   let invoiceValue  = 0;
+  let verifiedInvoiceId = '';
   try {
     const res = await fetch(`${BASE_URL}/v2/GetPaymentStatus`, {
       method:  'POST',
@@ -67,44 +67,60 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify({ Key: paymentId, KeyType: 'PaymentId' }),
     });
     const data = await res.json();
-    console.log(`[callback] MyFatoorah status response: IsSuccess=${data.IsSuccess} Status=${data.Data?.InvoiceStatus}`);
+    console.log(`[callback] MyFatoorah status: IsSuccess=${data.IsSuccess} Status=${data.Data?.InvoiceStatus}`);
 
-    if (!data.IsSuccess) {
-      throw new Error(`MyFatoorah error: ${data.Message}`);
-    }
-    invoiceStatus = data.Data?.InvoiceStatus ?? '';
-    invoiceValue  = data.Data?.InvoiceValue  ?? 0;
+    if (!data.IsSuccess) throw new Error(`MyFatoorah error: ${data.Message}`);
+
+    invoiceStatus     = data.Data?.InvoiceStatus ?? '';
+    invoiceValue      = data.Data?.InvoiceValue  ?? 0;
+    verifiedInvoiceId = String(data.Data?.InvoiceId ?? '');
   } catch (err: any) {
     console.error('[callback] Verification failed:', err.message);
-    // Log failed attempt
-    try { await sb.from('payments').insert({
-      user_id:               userId,
-      myfatoorah_payment_id: paymentId,
-      amount:                0,
-      credits_added:         0,
-      status:                'verification_failed',
-    }); } catch {}
     return NextResponse.redirect(`${APP_URL}/payment-failed?reason=verification_failed`);
   }
 
-  // ── Step 3: Check payment status ──────────────────────────────────────────
+  if (!verifiedInvoiceId) {
+    console.error('[callback] MyFatoorah response missing InvoiceId');
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=no_invoice_id`);
+  }
+
+  // ── Step 3: Resolve user_id + plan_id from server-side binding ───────────
+  // Never trust URL userId/planId — use the payments_pending row written at
+  // invoice creation time, keyed by MyFatoorah's verified InvoiceId.
+  const { data: pending, error: pendingErr } = await sb
+    .from('payments_pending')
+    .select('user_id, plan_id')
+    .eq('payment_id', verifiedInvoiceId)
+    .maybeSingle();
+
+  if (pendingErr || !pending) {
+    console.error(`[callback] ⚠️ No pending binding for invoice ${verifiedInvoiceId} — possible spoofing attempt`);
+    return NextResponse.redirect(`${APP_URL}/payment-failed?reason=unknown_invoice`);
+  }
+
+  const userId = pending.user_id as string;
+  const planId = pending.plan_id as string;
+  console.log(`[callback] Resolved user=${userId} plan=${planId} from payments_pending`);
+
+  // ── Step 4: Check payment status ──────────────────────────────────────────
   if (invoiceStatus !== 'Paid') {
     console.warn(`[callback] Payment not paid — status: ${invoiceStatus}`);
-    try { await sb.from('payments').insert({
-      user_id:               userId,
-      myfatoorah_payment_id: paymentId,
-      amount:                invoiceValue,
-      credits_added:         0,
-      status:                invoiceStatus.toLowerCase(),
-    }); } catch {}
+    try {
+      await sb.from('payments').insert({
+        user_id:               userId,
+        myfatoorah_payment_id: paymentId,
+        amount:                invoiceValue,
+        credits_added:         0,
+        status:                invoiceStatus.toLowerCase(),
+      });
+    } catch {}
     return NextResponse.redirect(`${APP_URL}/payment-failed?reason=${invoiceStatus.toLowerCase()}`);
   }
 
-  // ── Step 4: Credit the user ────────────────────────────────────────────────
+  // ── Step 5: Credit the user ───────────────────────────────────────────────
   const plan = PLAN_CREDITS[planId] ?? { credits: 5, tier: 'free', amount: invoiceValue };
 
   try {
-    // Get current credits
     const { data: profile } = await sb
       .from('profiles')
       .select('credits, tier')
@@ -114,7 +130,6 @@ export async function GET(req: NextRequest) {
     const currentCredits = profile?.credits ?? 0;
     const newCredits     = currentCredits + plan.credits;
 
-    // Update profile
     const updateData: any = { credits: newCredits };
     if (planId === 'pro_monthly') {
       updateData.tier            = 'pro';
@@ -128,7 +143,6 @@ export async function GET(req: NextRequest) {
 
     if (updateErr) throw new Error(`Profile update failed: ${updateErr.message}`);
 
-    // Log payment
     await sb.from('payments').insert({
       user_id:               userId,
       myfatoorah_payment_id: paymentId,
@@ -136,6 +150,9 @@ export async function GET(req: NextRequest) {
       credits_added:         plan.credits,
       status:                'paid',
     });
+
+    // One-time use — drop the pending binding.
+    await sb.from('payments_pending').delete().eq('payment_id', verifiedInvoiceId);
 
     console.log(`[callback] ✓ Credited ${plan.credits} stars to user ${userId} | new balance: ${newCredits}`);
 

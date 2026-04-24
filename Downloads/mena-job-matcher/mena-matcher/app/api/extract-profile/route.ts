@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractProfileFromCV, extractEnglishKeywords } from '@/lib/openai';
 import { Language } from '@/lib/i18n/translations';
+import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
+    const sb = createServerSupabaseClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { cvText, lang = 'en' } = body as { cvText: string; lang: Language };
 
@@ -11,13 +18,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'cvText is required' }, { status: 400 });
     }
 
-    console.log(`[extract-profile] cvText: ${cvText.length} chars | lang: ${lang}`);
-
     if (cvText.length > 150_000) {
       return NextResponse.json({ error: 'CV text too long (max 150,000 characters)' }, { status: 400 });
     }
 
-    // Run profile extraction + keyword extraction in parallel
+    console.log(`[extract-profile] user=${user.id} | cvText: ${cvText.length} chars | lang: ${lang}`);
+
     const [profile, searchKeywords] = await Promise.all([
       extractProfileFromCV(cvText, lang),
       extractEnglishKeywords(cvText),
