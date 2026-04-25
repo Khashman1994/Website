@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sparkles, Menu, X, LogOut, LayoutDashboard, LogIn } from 'lucide-react';
+import { Sparkles, Menu, X, LogOut, LayoutDashboard, LogIn, Briefcase } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { createClient } from '@/lib/supabase';
@@ -44,6 +44,8 @@ export function Navbar() {
   const navLinks = isAr
     ? [{ href: '/', label: 'الرئيسية' }, { href: '/jobs', label: 'كل الوظائف' }, { href: '/about', label: 'عن المنصة' }, { href: '/contact', label: 'تواصل معنا' }]
     : [{ href: '/', label: 'Home' }, { href: '/jobs', label: 'Browse Jobs' }, { href: '/about', label: 'About' }, { href: '/contact', label: 'Contact' }];
+
+  const postJobLabel = isAr ? 'انشر وظيفة' : 'Post a Job';
 
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent'}`}
@@ -93,6 +95,14 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Employer CTA — outlined pill, stands apart from solid Login/Dashboard */}
+            <Link
+              href="/employers"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 hover:bg-primary-500 hover:text-white text-sm font-semibold rounded-full transition-all shadow-sm"
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              {postJobLabel}
+            </Link>
             <LanguageSwitcher />
             {userEmail ? (
               <div className="flex items-center gap-2">
@@ -147,6 +157,17 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          {/* Employer CTA in mobile menu */}
+          <div className="pt-2 border-t border-slate-100">
+            <Link
+              href="/employers"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-center gap-2 py-2.5 border-2 border-primary-500 text-primary-600 active:bg-primary-500 active:text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              <Briefcase className="w-4 h-4" />
+              {postJobLabel}
+            </Link>
+          </div>
           {/* Language toggle in mobile menu */}
           <div className="pt-2 border-t border-slate-100">
             <LanguageSwitcher />
