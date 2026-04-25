@@ -333,7 +333,7 @@ async function saveJobsToSupabase(jobs: Job[], industry: string | null, countryI
       process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
 
-    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const expires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
     const rows = jobs.map(j => ({
       id:              j.id,
       title:           j.title,

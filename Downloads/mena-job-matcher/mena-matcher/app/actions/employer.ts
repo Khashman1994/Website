@@ -176,7 +176,7 @@ export async function postJob(
       salary_currency: payload.salary_currency ?? null,
       posted_at:       now,
       fetched_at:      now,
-      expires_at:      new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days
+      expires_at:      new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
     };
 
     const { error } = await supabase.from('jobs').insert(row);

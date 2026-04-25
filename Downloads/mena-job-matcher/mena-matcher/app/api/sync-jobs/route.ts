@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       console.log(`[sync] "${query}" (${iso}): ${raw.length} jobs`);
       if (!raw.length) continue;
 
-      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const expires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
       const rows = raw.map((r: any) => ({
         id:              r.job_id,
         title:           r.job_title ?? '',

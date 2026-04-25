@@ -333,7 +333,8 @@ const QUERIES: { query: string; location: string; sector: string }[] = [
 ];
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
-const expires = () => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString(); };
+// Jobs stay live for 90 days from the time they were fetched/posted.
+const expires = () => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString(); };
 
 function mapJSearch(j: any, sector: string) {
   return {
