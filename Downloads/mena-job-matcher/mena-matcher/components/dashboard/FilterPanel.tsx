@@ -8,11 +8,13 @@ import { Filter, MapPin, Briefcase, Home, DollarSign, ChevronDown, X } from 'luc
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { MENA_LOCATIONS, COUNTRY_LABELS, CountryCode, LangKey } from '@/lib/locations';
 
-// Inline flags to avoid import issues
+// Inline flags to avoid import issues — must cover every CountryCode in lib/locations.
 const COUNTRY_FLAGS: Record<CountryCode, string> = {
   SA:'🇸🇦', AE:'🇦🇪', EG:'🇪🇬', QA:'🇶🇦', KW:'🇰🇼',
   BH:'🇧🇭', OM:'🇴🇲', JO:'🇯🇴', LB:'🇱🇧', IQ:'🇮🇶',
   LY:'🇱🇾', TN:'🇹🇳', DZ:'🇩🇿', MA:'🇲🇦',
+  PS:'🇵🇸', SY:'🇸🇾', YE:'🇾🇪', SD:'🇸🇩',
+  SO:'🇸🇴', DJ:'🇩🇯', KM:'🇰🇲', MR:'🇲🇷',
 };
 
 // ─── Searchable Location Combobox ─────────────────────────────────────────────
@@ -46,9 +48,16 @@ function LocationCombobox({ value, onChange, lang }: ComboboxProps) {
         loc.value.toLowerCase().includes(search.toLowerCase())
       );
 
-  // Countries that have at least one visible result
+  // Countries that have at least one visible result.
+  // Order: GCC + Egypt first (highest job volume), then Levant, North Africa,
+  // and Horn of Africa / Indian Ocean members.
   const visibleCountries = (
-    ['SA','AE','EG','QA','KW','BH','OM','JO','LB','IQ','MA','TN','DZ','LY'] as CountryCode[]
+    [
+      'SA','AE','EG','QA','KW','BH','OM',           // GCC + Egypt
+      'JO','LB','IQ','SY','PS','YE',                // Levant + Yemen
+      'MA','TN','DZ','LY','MR',                     // Maghreb + Mauritania
+      'SD','SO','DJ','KM',                          // Horn of Africa + Comoros
+    ] as CountryCode[]
   ).filter((c) => filtered.some((l) => l.country === c));
 
   // Display label for current value
@@ -149,66 +158,60 @@ function LocationCombobox({ value, onChange, lang }: ComboboxProps) {
   );
 }
 
-// ─── Currency helper ──────────────────────────────────────────────────────────
+// ─── Currency map ─────────────────────────────────────────────────────────────
+// Country-level entries cover every Arab League state. City-level lookups now
+// fall back to the country segment via getCurrency(), so we no longer need to
+// hand-list every city.
 const LOCATION_CURRENCY: Record<string, { code: string; en: string; ar: string }> = {
-  // UAE
-  'UAE':                    { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Dubai, UAE':             { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Abu Dhabi, UAE':         { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Sharjah, UAE':           { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Ajman, UAE':             { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Ras Al Khaimah, UAE':    { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Fujairah, UAE':          { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  'Umm Al Quwain, UAE':     { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
-  // Saudi Arabia
+  // GCC + Yemen
   'Saudi Arabia':           { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Riyadh, Saudi Arabia':   { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Jeddah, Saudi Arabia':   { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Dammam, Saudi Arabia':   { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Khobar, Saudi Arabia':   { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Mecca, Saudi Arabia':    { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Medina, Saudi Arabia':   { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Abha, Saudi Arabia':     { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'Taif, Saudi Arabia':     { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  'NEOM, Saudi Arabia':     { code: 'SAR', en: 'SAR (ر.س)',   ar: 'ريال سعودي'         },
-  // Kuwait
+  'UAE':                    { code: 'AED', en: 'AED (د.إ)',   ar: 'درهم إماراتي'       },
   'Kuwait':                 { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Kuwait City, Kuwait':    { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Hawalli, Kuwait':        { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Salmiya, Kuwait':        { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Farwaniya, Kuwait':      { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Ahmadi, Kuwait':         { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  'Jahra, Kuwait':          { code: 'KWD', en: 'KWD (د.ك)',   ar: 'دينار كويتي'        },
-  // Qatar
   'Qatar':                  { code: 'QAR', en: 'QAR (ر.ق)',   ar: 'ريال قطري'          },
-  'Doha, Qatar':            { code: 'QAR', en: 'QAR (ر.ق)',   ar: 'ريال قطري'          },
-  'Lusail, Qatar':          { code: 'QAR', en: 'QAR (ر.ق)',   ar: 'ريال قطري'          },
-  'Al Wakra, Qatar':        { code: 'QAR', en: 'QAR (ر.ق)',   ar: 'ريال قطري'          },
-  'Al Rayyan, Qatar':       { code: 'QAR', en: 'QAR (ر.ق)',   ar: 'ريال قطري'          },
-  // Bahrain
   'Bahrain':                { code: 'BHD', en: 'BHD (د.ب)',   ar: 'دينار بحريني'       },
-  'Manama, Bahrain':        { code: 'BHD', en: 'BHD (د.ب)',   ar: 'دينار بحريني'       },
-  'Riffa, Bahrain':         { code: 'BHD', en: 'BHD (د.ب)',   ar: 'دينار بحريني'       },
-  'Muharraq, Bahrain':      { code: 'BHD', en: 'BHD (د.ب)',   ar: 'دينار بحريني'       },
-  // Oman
   'Oman':                   { code: 'OMR', en: 'OMR (ر.ع)',   ar: 'ريال عُماني'        },
-  'Muscat, Oman':           { code: 'OMR', en: 'OMR (ر.ع)',   ar: 'ريال عُماني'        },
-  // Egypt
-  'Egypt':                  { code: 'EGP', en: 'EGP (ج.م)',   ar: 'جنيه مصري'          },
-  'Cairo, Egypt':           { code: 'EGP', en: 'EGP (ج.م)',   ar: 'جنيه مصري'          },
-  'Alexandria, Egypt':      { code: 'EGP', en: 'EGP (ج.م)',   ar: 'جنيه مصري'          },
-  // Jordan
+  'Yemen':                  { code: 'YER', en: 'YER (ر.ي)',   ar: 'ريال يمني'          },
+  // Levant
   'Jordan':                 { code: 'JOD', en: 'JOD (د.أ)',   ar: 'دينار أردني'        },
-  'Amman, Jordan':          { code: 'JOD', en: 'JOD (د.أ)',   ar: 'دينار أردني'        },
-  // Morocco
+  'Lebanon':                { code: 'LBP', en: 'LBP (ل.ل)',   ar: 'ليرة لبنانية'       },
+  'Syria':                  { code: 'SYP', en: 'SYP (ل.س)',   ar: 'ليرة سورية'         },
+  'Iraq':                   { code: 'IQD', en: 'IQD (د.ع)',   ar: 'دينار عراقي'        },
+  'Palestine':              { code: 'ILS', en: 'ILS (₪)',     ar: 'شيكل'               },
+  // Egypt + Maghreb + Mauritania
+  'Egypt':                  { code: 'EGP', en: 'EGP (ج.م)',   ar: 'جنيه مصري'          },
   'Morocco':                { code: 'MAD', en: 'MAD (د.م)',   ar: 'درهم مغربي'         },
-  'Casablanca, Morocco':    { code: 'MAD', en: 'MAD (د.م)',   ar: 'درهم مغربي'         },
+  'Tunisia':                { code: 'TND', en: 'TND (د.ت)',   ar: 'دينار تونسي'        },
+  'Algeria':                { code: 'DZD', en: 'DZD (د.ج)',   ar: 'دينار جزائري'       },
+  'Libya':                  { code: 'LYD', en: 'LYD (د.ل)',   ar: 'دينار ليبي'         },
+  'Mauritania':             { code: 'MRU', en: 'MRU (UM)',    ar: 'أوقية موريتانية'    },
+  // Horn of Africa + Comoros
+  'Sudan':                  { code: 'SDG', en: 'SDG (ج.س)',   ar: 'جنيه سوداني'        },
+  'Somalia':                { code: 'SOS', en: 'SOS (S)',     ar: 'شلن صومالي'         },
+  'Djibouti':               { code: 'DJF', en: 'DJF (Fdj)',   ar: 'فرنك جيبوتي'        },
+  'Comoros':                { code: 'KMF', en: 'KMF (CF)',    ar: 'فرنك قمري'          },
 };
 
 const DEFAULT_CURRENCY = { code: 'USD', en: 'USD ($)', ar: 'دولار أمريكي' };
 
+/**
+ * Resolve the local currency for a search-bar location.
+ *
+ *   "Riyadh, Saudi Arabia" → exact miss → fallback to "Saudi Arabia" → SAR
+ *   "Saudi Arabia"         → exact hit                                → SAR
+ *   anything unknown       → DEFAULT_CURRENCY (USD)
+ */
 function getCurrency(location: string, lang: string) {
-  const c = LOCATION_CURRENCY[location] ?? DEFAULT_CURRENCY;
+  let c = LOCATION_CURRENCY[location];
+
+  if (!c) {
+    const parts = location.split(',');
+    if (parts.length > 1) {
+      const country = parts[parts.length - 1].trim();
+      c = LOCATION_CURRENCY[country];
+    }
+  }
+
+  c = c ?? DEFAULT_CURRENCY;
   return { code: c.code, label: lang === 'ar' ? c.ar : c.en };
 }
 

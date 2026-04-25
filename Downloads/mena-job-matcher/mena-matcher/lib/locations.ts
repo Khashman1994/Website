@@ -1,11 +1,19 @@
 // lib/locations.ts
-export type CountryCode = 'SA' | 'AE' | 'EG' | 'QA' | 'KW' | 'BH' | 'OM' | 'JO' | 'LB' | 'IQ' | 'LY' | 'TN' | 'DZ' | 'MA';
+// All 22 Arab League member states.
+export type CountryCode =
+  | 'SA' | 'AE' | 'EG' | 'QA' | 'KW' | 'BH' | 'OM' | 'JO'
+  | 'LB' | 'IQ' | 'LY' | 'TN' | 'DZ' | 'MA'
+  // Newly added: Palestine, Syria, Yemen, Sudan, Somalia, Djibouti,
+  // Comoros, Mauritania.
+  | 'PS' | 'SY' | 'YE' | 'SD' | 'SO' | 'DJ' | 'KM' | 'MR';
 
 export const COUNTRY_FLAGS: Record<CountryCode, string> = {
   SA: '🇸🇦', AE: '🇦🇪', EG: '🇪🇬', QA: '🇶🇦',
   KW: '🇰🇼', BH: '🇧🇭', OM: '🇴🇲', JO: '🇯🇴',
   LB: '🇱🇧', IQ: '🇮🇶', LY: '🇱🇾', TN: '🇹🇳',
   DZ: '🇩🇿', MA: '🇲🇦',
+  PS: '🇵🇸', SY: '🇸🇾', YE: '🇾🇪', SD: '🇸🇩',
+  SO: '🇸🇴', DJ: '🇩🇯', KM: '🇰🇲', MR: '🇲🇷',
 };
 
 export interface MenaLocation {
@@ -114,6 +122,42 @@ export const MENA_LOCATIONS: MenaLocation[] = [
   { value: 'Libya',                      en: '🇱🇾 All Libya',          ar: '🇱🇾 كل ليبيا',                   country: 'LY' },
   { value: 'Tripoli, Libya',             en: 'Tripoli',               ar: 'طرابلس',                         country: 'LY' },
   { value: 'Benghazi, Libya',            en: 'Benghazi',              ar: 'بنغازي',                         country: 'LY' },
+  // ── Palestine ─────────────────────────────────────────────────────────────
+  { value: 'Palestine',                  en: '🇵🇸 All Palestine',      ar: '🇵🇸 كل فلسطين',                  country: 'PS' },
+  { value: 'Ramallah, Palestine',        en: 'Ramallah',              ar: 'رام الله',                       country: 'PS' },
+  { value: 'Gaza, Palestine',            en: 'Gaza',                  ar: 'غزة',                            country: 'PS' },
+  { value: 'Bethlehem, Palestine',       en: 'Bethlehem',             ar: 'بيت لحم',                        country: 'PS' },
+  { value: 'Hebron, Palestine',          en: 'Hebron',                ar: 'الخليل',                         country: 'PS' },
+  // ── Syria ─────────────────────────────────────────────────────────────────
+  { value: 'Syria',                      en: '🇸🇾 All Syria',          ar: '🇸🇾 كل سوريا',                   country: 'SY' },
+  { value: 'Damascus, Syria',            en: 'Damascus',              ar: 'دمشق',                           country: 'SY' },
+  { value: 'Aleppo, Syria',              en: 'Aleppo',                ar: 'حلب',                            country: 'SY' },
+  { value: 'Homs, Syria',                en: 'Homs',                  ar: 'حمص',                            country: 'SY' },
+  { value: 'Latakia, Syria',             en: 'Latakia',               ar: 'اللاذقية',                       country: 'SY' },
+  // ── Yemen ─────────────────────────────────────────────────────────────────
+  { value: 'Yemen',                      en: '🇾🇪 All Yemen',          ar: '🇾🇪 كل اليمن',                   country: 'YE' },
+  { value: "Sana'a, Yemen",              en: "Sana'a",                ar: 'صنعاء',                          country: 'YE' },
+  { value: 'Aden, Yemen',                en: 'Aden',                  ar: 'عدن',                            country: 'YE' },
+  { value: 'Taiz, Yemen',                en: 'Taiz',                  ar: 'تعز',                            country: 'YE' },
+  // ── Sudan ─────────────────────────────────────────────────────────────────
+  { value: 'Sudan',                      en: '🇸🇩 All Sudan',          ar: '🇸🇩 كل السودان',                 country: 'SD' },
+  { value: 'Khartoum, Sudan',            en: 'Khartoum',              ar: 'الخرطوم',                        country: 'SD' },
+  { value: 'Omdurman, Sudan',            en: 'Omdurman',              ar: 'أم درمان',                       country: 'SD' },
+  { value: 'Port Sudan, Sudan',          en: 'Port Sudan',            ar: 'بورتسودان',                      country: 'SD' },
+  // ── Somalia ───────────────────────────────────────────────────────────────
+  { value: 'Somalia',                    en: '🇸🇴 All Somalia',        ar: '🇸🇴 كل الصومال',                 country: 'SO' },
+  { value: 'Mogadishu, Somalia',         en: 'Mogadishu',             ar: 'مقديشو',                         country: 'SO' },
+  { value: 'Hargeisa, Somalia',          en: 'Hargeisa',              ar: 'هرجيسا',                         country: 'SO' },
+  // ── Djibouti ──────────────────────────────────────────────────────────────
+  { value: 'Djibouti',                   en: '🇩🇯 All Djibouti',       ar: '🇩🇯 كل جيبوتي',                  country: 'DJ' },
+  { value: 'Djibouti City, Djibouti',    en: 'Djibouti City',         ar: 'مدينة جيبوتي',                   country: 'DJ' },
+  // ── Comoros ───────────────────────────────────────────────────────────────
+  { value: 'Comoros',                    en: '🇰🇲 All Comoros',        ar: '🇰🇲 كل جزر القمر',               country: 'KM' },
+  { value: 'Moroni, Comoros',            en: 'Moroni',                ar: 'موروني',                         country: 'KM' },
+  // ── Mauritania ────────────────────────────────────────────────────────────
+  { value: 'Mauritania',                 en: '🇲🇷 All Mauritania',     ar: '🇲🇷 كل موريتانيا',               country: 'MR' },
+  { value: 'Nouakchott, Mauritania',     en: 'Nouakchott',            ar: 'نواكشوط',                        country: 'MR' },
+  { value: 'Nouadhibou, Mauritania',     en: 'Nouadhibou',            ar: 'نواذيبو',                        country: 'MR' },
 ];
 
 export const COUNTRY_LABELS: Record<CountryCode, { en: string; ar: string }> = {
@@ -131,5 +175,12 @@ export const COUNTRY_LABELS: Record<CountryCode, { en: string; ar: string }> = {
   TN: { en: '🇹🇳 Tunisia',       ar: '🇹🇳 تونس'                      },
   DZ: { en: '🇩🇿 Algeria',       ar: '🇩🇿 الجزائر'                   },
   LY: { en: '🇱🇾 Libya',         ar: '🇱🇾 ليبيا'                     },
- 
+  PS: { en: '🇵🇸 Palestine',     ar: '🇵🇸 فلسطين'                    },
+  SY: { en: '🇸🇾 Syria',         ar: '🇸🇾 سوريا'                     },
+  YE: { en: '🇾🇪 Yemen',         ar: '🇾🇪 اليمن'                     },
+  SD: { en: '🇸🇩 Sudan',         ar: '🇸🇩 السودان'                   },
+  SO: { en: '🇸🇴 Somalia',       ar: '🇸🇴 الصومال'                   },
+  DJ: { en: '🇩🇯 Djibouti',      ar: '🇩🇯 جيبوتي'                    },
+  KM: { en: '🇰🇲 Comoros',       ar: '🇰🇲 جزر القمر'                 },
+  MR: { en: '🇲🇷 Mauritania',    ar: '🇲🇷 موريتانيا'                 },
 };
