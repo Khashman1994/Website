@@ -190,7 +190,110 @@ export async function postJob(
   }
 }
 
-// ─── 5. Delete a job posted by the current employer ─────────────────────────
+// ─── 5. Get a single job (must belong to the current employer) ──────────────
+export async function getMyJob(jobId: string): Promise<Job | null> {
+  const { supabase, user } = await requireUser();
+
+  const { data: company } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('employer_id', user.id)
+    .maybeSingle();
+  if (!company) return null;
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('id', jobId)
+    .eq('company_id', company.id)
+    .eq('source', 'employer_posted')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[getMyJob]', error.message);
+    return null;
+  }
+  return (data as unknown as Job) ?? null;
+}
+
+// ─── 6. Update an existing job (employer-owned) ─────────────────────────────
+export async function updateJob(
+  jobId: string,
+  input: JobPostInput | FormData,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { supabase, user } = await requireUser();
+
+    // Defence-in-depth: confirm the job belongs to the caller's company
+    // before issuing the UPDATE. RLS would block it anyway, but failing
+    // fast gives a clearer error message.
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('employer_id', user.id)
+      .maybeSingle();
+    if (!company) return { ok: false, error: 'No company profile' };
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from('jobs')
+      .select('id, company_id, source')
+      .eq('id', jobId)
+      .maybeSingle();
+    if (fetchErr)                                     return { ok: false, error: fetchErr.message };
+    if (!existing)                                    return { ok: false, error: 'Job not found' };
+    if (existing.company_id !== company.id)           return { ok: false, error: 'Not authorised' };
+    if (existing.source     !== 'employer_posted')    return { ok: false, error: 'Cannot edit scraped jobs' };
+
+    const payload: JobPostInput =
+      input instanceof FormData
+        ? {
+            title:           trim(input.get('title')),
+            location:        trim(input.get('location')),
+            description:     trim(input.get('description')),
+            requirements:    trim(input.get('requirements')) || undefined,
+            employment_type: trim(input.get('employment_type')) || undefined,
+            remote:          input.get('remote') === 'on' || input.get('remote') === 'true',
+            salary_min:      toNumOrNull(input.get('salary_min')),
+            salary_max:      toNumOrNull(input.get('salary_max')),
+            salary_currency: trim(input.get('salary_currency')) || undefined,
+            url:             trim(input.get('url')) || undefined,
+          }
+        : input;
+
+    if (!payload.title || !payload.location || !payload.description) {
+      return { ok: false, error: 'Title, location, and description are required' };
+    }
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        title:           payload.title,
+        location:        payload.location,
+        country:         payload.location.split(',').slice(-1)[0]?.trim() || payload.location,
+        description:     payload.description.slice(0, 5000),
+        employment_type: payload.employment_type ?? '',
+        remote:          payload.remote ?? false,
+        url:             payload.url ?? '',
+        salary_min:      payload.salary_min ?? null,
+        salary_max:      payload.salary_max ?? null,
+        salary_currency: payload.salary_currency ?? null,
+      })
+      .eq('id', jobId)
+      .eq('company_id', company.id);
+
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath('/employers/dashboard');
+    revalidatePath(`/employers/dashboard/edit/${jobId}`);
+    revalidatePath('/jobs');
+    revalidatePath(`/jobs/${jobId}`);
+    return { ok: true, data: { id: jobId } };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? 'Failed to update job' };
+  }
+}
+
+// ─── 7. Delete a job posted by the current employer ─────────────────────────
 export async function deleteJob(jobId: string): Promise<ActionResult<null>> {
   try {
     const { supabase } = await requireUser();

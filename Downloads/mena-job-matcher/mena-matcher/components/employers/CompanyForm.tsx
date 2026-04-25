@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { upsertCompany } from '@/app/actions/employer';
+import { useLang } from '@/lib/i18n/LanguageContext';
 import type { Company } from '@/lib/types';
 
 interface Props {
@@ -13,8 +14,40 @@ interface Props {
 
 export function CompanyForm({ initial }: Props) {
   const router = useRouter();
+  const { lang } = useLang();
+  const isAr = lang === 'ar';
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const T = isAr
+    ? {
+        nameLabel:    'اسم الشركة',
+        namePh:       'شركة أكمي ميدل إيست',
+        websiteLabel: 'الموقع الإلكتروني',
+        websitePh:    'https://acme.com',
+        logoLabel:    'رابط الشعار',
+        logoHint:     'الصق رابط صورة عام (سنضيف الرفع لاحقاً)',
+        logoPh:       'https://…/logo.png',
+        aboutLabel:   'نبذة عن الشركة',
+        aboutPh:      'فقرة قصيرة سيراها المرشحون في إعلانات وظائفك.',
+        submitCreate: 'إنشاء ملف الشركة',
+        submitSave:   'حفظ التغييرات',
+        required:     '*',
+      }
+    : {
+        nameLabel:    'Company name',
+        namePh:       'Acme MENA Holdings',
+        websiteLabel: 'Website',
+        websitePh:    'https://acme.com',
+        logoLabel:    'Logo URL',
+        logoHint:     "Paste a public image URL (we'll add upload later)",
+        logoPh:       'https://…/logo.png',
+        aboutLabel:   'About the company',
+        aboutPh:      'One short paragraph candidates will see on your job listings.',
+        submitCreate: 'Create company profile',
+        submitSave:   'Save changes',
+        required:     '*',
+      };
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -29,43 +62,43 @@ export function CompanyForm({ initial }: Props) {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-5">
-      <Field label="Company name" required>
+    <form action={handleSubmit} className="space-y-5" dir={isAr ? 'rtl' : 'ltr'}>
+      <Field label={T.nameLabel} required>
         <input
           name="name"
           required
           defaultValue={initial?.name ?? ''}
-          placeholder="Acme MENA Holdings"
+          placeholder={T.namePh}
           className="input"
         />
       </Field>
 
-      <Field label="Website">
+      <Field label={T.websiteLabel}>
         <input
           name="website"
           type="url"
           defaultValue={initial?.website ?? ''}
-          placeholder="https://acme.com"
+          placeholder={T.websitePh}
           className="input"
         />
       </Field>
 
-      <Field label="Logo URL" hint="Paste a public image URL (we'll add upload later)">
+      <Field label={T.logoLabel} hint={T.logoHint}>
         <input
           name="logo_url"
           type="url"
           defaultValue={initial?.logo_url ?? ''}
-          placeholder="https://…/logo.png"
+          placeholder={T.logoPh}
           className="input"
         />
       </Field>
 
-      <Field label="About the company">
+      <Field label={T.aboutLabel}>
         <textarea
           name="description"
           rows={4}
           defaultValue={initial?.description ?? ''}
-          placeholder="One short paragraph candidates will see on your job listings."
+          placeholder={T.aboutPh}
           className="input resize-y"
         />
       </Field>
@@ -82,7 +115,7 @@ export function CompanyForm({ initial }: Props) {
         className="w-full inline-flex items-center justify-center gap-2 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-60"
       >
         {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-        {initial?.id ? 'Save changes' : 'Create company profile'}
+        {initial?.id ? T.submitSave : T.submitCreate}
       </button>
 
       <style jsx>{`
