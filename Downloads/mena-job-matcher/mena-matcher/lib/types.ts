@@ -1,5 +1,7 @@
 // lib/types.ts
 
+export type UserRole = 'candidate' | 'employer';
+
 export interface UserProfile {
   name?: string;
   email?: string;
@@ -13,6 +15,7 @@ export interface UserProfile {
   education?: string[];
   certifications?: string[];
   languages?: string[];
+  role?: UserRole;
 }
 
 export type ExperienceLevel = 'entry' | 'mid' | 'senior' | 'lead' | 'executive';
@@ -27,12 +30,21 @@ export interface JobFilters {
   salaryMax?: number;
 }
 
+export type JobSource =
+  | 'jsearch'
+  | 'mock'
+  | 'supabase'
+  | 'serp'
+  | 'scraped'
+  | 'employer_posted';
+
 export interface Job {
   id: string;
   title: string;
   company: string;
   location: string;
   description: string;
+  requirements?: string;
   salary?: {
     min?: number;
     max?: number;
@@ -42,7 +54,8 @@ export interface Job {
   remote?: boolean;
   url: string;
   postedDate?: string;
-  source: 'jsearch' | 'mock' | 'supabase' | 'serp';
+  source: JobSource;
+  company_id?: string | null;
   isArabic?: boolean;
   isMock?: boolean;  // true when job comes from local mock data (Stage 3 fallback)
 }
@@ -78,13 +91,37 @@ export interface User {
   createdAt: string;
 }
 
+// B2B Employer Portal — companies row (mirrors Supabase `companies` table)
 export interface Company {
   id: string;
+  employer_id: string;
   name: string;
-  logoUrl?: string;
+  website?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
+  created_at: string;
+}
+
+// Input shape used by the upsertCompany Server Action / form
+export interface CompanyInput {
+  name: string;
   website?: string;
-  industry?: string;
-  country?: string;
+  logo_url?: string;
+  description?: string;
+}
+
+// Input shape used by the postJob Server Action / form
+export interface JobPostInput {
+  title: string;
+  location: string;
+  description: string;
+  requirements?: string;
+  employment_type?: string;
+  remote?: boolean;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_currency?: string;
+  url?: string;
 }
 
 // ─── Paywall / Stripe Preparation ────────────────────────────────────────────

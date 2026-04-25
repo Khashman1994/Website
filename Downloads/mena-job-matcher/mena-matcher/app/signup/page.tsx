@@ -1,16 +1,30 @@
 'use client';
 // app/signup/page.tsx
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n/LanguageContext';
-import { Loader2, Mail, Lock, User, Sparkles } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Sparkles, Briefcase } from 'lucide-react';
 import Link from 'next/link';
+import type { UserRole } from '@/lib/types';
 
-export default function SignupPage() {
+function SignupPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang } = useLang();
   const isAr = lang === 'ar';
+
+  // ── Read role + redirectTo from URL (e.g. /signup?role=employer&redirectTo=/employers/dashboard)
+  const roleParam: UserRole =
+    searchParams.get('role') === 'employer' ? 'employer' : 'candidate';
+  const isEmployer = roleParam === 'employer';
+  const rawRedirect = searchParams.get('redirectTo');
+  const redirectTo =
+    rawRedirect && rawRedirect.startsWith('/')
+      ? rawRedirect
+      : isEmployer
+      ? '/employers/dashboard'
+      : '/dashboard';
 
   const [fullName, setFullName] = useState('');
   const [email,    setEmail]    = useState('');
@@ -22,9 +36,13 @@ export default function SignupPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     const supabase = createClient();
+    // Forward role + redirectTo through OAuth so /auth/callback can persist them.
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+    callbackUrl.searchParams.set('role', roleParam);
+    callbackUrl.searchParams.set('redirectTo', redirectTo);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl.toString() },
     });
     if (oauthError) { setError(oauthError.message); setLoading(false); }
   };
@@ -36,10 +54,16 @@ export default function SignupPage() {
 
     try {
       const supabase = createClient();
+      // Stash role in user_metadata. Supabase persists this on auth.users
+      // and surfaces it on every session — /auth/callback reads it when the
+      // confirmation email is clicked and writes it into profiles.role.
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } },
+        options: {
+          data: { full_name: fullName, role: roleParam },
+          emailRedirectTo: `${window.location.origin}/auth/callback?role=${roleParam}&redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
       });
       if (authError) throw authError;
       setSuccess(true);
@@ -65,7 +89,10 @@ export default function SignupPage() {
               ? 'أرسلنا رابط تأكيد إلى بريدك الإلكتروني'
               : 'We sent a confirmation link to your email'}
           </p>
-          <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+          <Link
+            href={`/login?redirectTo=${encodeURIComponent(redirectTo)}`}
+            className="text-primary-600 hover:text-primary-700 font-medium"
+          >
             {isAr ? 'العودة لتسجيل الدخول' : 'Back to login'}
           </Link>
         </div>
@@ -73,21 +100,31 @@ export default function SignupPage() {
     );
   }
 
+  // ── Headline copy varies for employer vs candidate ───────────────────────
+  const headline = isEmployer
+    ? (isAr ? 'إنشاء حساب صاحب عمل' : 'Create employer account')
+    : (isAr ? 'إنشاء حساب جديد' : 'Create your account');
+  const subheadline = isEmployer
+    ? (isAr ? 'انشر وظائف مجاناً واحصل على أفضل المرشحين' : 'Post jobs free and meet pre-qualified MENA talent')
+    : (isAr ? 'احفظ ملفك الشخصي وابحث عن وظيفتك المثالية' : 'Save your profile and find your perfect job');
+
   return (
     <div className="min-h-screen bg-gradient-warm flex items-center justify-center px-4" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-primary-200 shadow-sm mb-6">
-            <Sparkles className="w-4 h-4 text-primary-500" />
-            <span className="text-sm font-medium text-neutral-700">MENA Job Matcher</span>
+            {isEmployer ? (
+              <Briefcase className="w-4 h-4 text-primary-500" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-primary-500" />
+            )}
+            <span className="text-sm font-medium text-neutral-700">
+              {isEmployer ? 'MENA Job Matcher · Employers' : 'MENA Job Matcher'}
+            </span>
           </div>
-          <h1 className="font-display text-3xl text-neutral-900 mb-2">
-            {isAr ? 'إنشاء حساب جديد' : 'Create your account'}
-          </h1>
-          <p className="text-neutral-600">
-            {isAr ? 'احفظ ملفك الشخصي وابحث عن وظيفتك المثالية' : 'Save your profile and find your perfect job'}
-          </p>
+          <h1 className="font-display text-3xl text-neutral-900 mb-2">{headline}</h1>
+          <p className="text-neutral-600">{subheadline}</p>
         </div>
 
         {/* Card */}
@@ -115,7 +152,9 @@ export default function SignupPage() {
             {/* Full Name */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                {isAr ? 'الاسم الكامل' : 'Full Name'}
+                {isEmployer
+                  ? (isAr ? 'اسمك' : 'Your name')
+                  : (isAr ? 'الاسم الكامل' : 'Full Name')}
               </label>
               <div className="relative">
                 <User className={`absolute top-3 ${isAr ? 'right-3' : 'left-3'} w-4 h-4 text-neutral-400`} />
@@ -133,7 +172,9 @@ export default function SignupPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                {isAr ? 'البريد الإلكتروني' : 'Email'}
+                {isEmployer
+                  ? (isAr ? 'بريد العمل الإلكتروني' : 'Work email')
+                  : (isAr ? 'البريد الإلكتروني' : 'Email')}
               </label>
               <div className="relative">
                 <Mail className={`absolute top-3 ${isAr ? 'right-3' : 'left-3'} w-4 h-4 text-neutral-400`} />
@@ -181,14 +222,41 @@ export default function SignupPage() {
               className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isAr ? 'إنشاء الحساب' : 'Create Account'}
+              {isEmployer
+                ? (isAr ? 'إنشاء حساب صاحب عمل' : 'Create employer account')
+                : (isAr ? 'إنشاء الحساب' : 'Create Account')}
             </button>
           </form>
 
+          {/* Toggle role link */}
+          <p className="text-center text-xs text-neutral-500 mt-5">
+            {isEmployer ? (
+              <>
+                {isAr ? 'تبحث عن وظيفة بدلاً من ذلك؟ ' : 'Looking for a job instead? '}
+                <Link href="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
+                  {isAr ? 'إنشاء حساب مرشح' : 'Sign up as a candidate'}
+                </Link>
+              </>
+            ) : (
+              <>
+                {isAr ? 'تبحث عن توظيف؟ ' : 'Hiring? '}
+                <Link
+                  href="/signup?role=employer&redirectTo=/employers/dashboard"
+                  className="text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  {isAr ? 'إنشاء حساب صاحب عمل' : 'Create an employer account'}
+                </Link>
+              </>
+            )}
+          </p>
+
           {/* Login link */}
-          <p className="text-center text-sm text-neutral-600 mt-6">
+          <p className="text-center text-sm text-neutral-600 mt-4">
             {isAr ? 'لديك حساب بالفعل؟ ' : 'Already have an account? '}
-            <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link
+              href={`/login?redirectTo=${encodeURIComponent(redirectTo)}`}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
               {isAr ? 'تسجيل الدخول' : 'Sign in'}
             </Link>
           </p>
@@ -202,5 +270,14 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Suspense wrapper — required by Next.js for useSearchParams during SSG
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-warm" />}>
+      <SignupPageInner />
+    </Suspense>
   );
 }

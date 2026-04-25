@@ -105,6 +105,48 @@ async function fetchSerpApi(query: string, location: string): Promise<any[]> {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 const QUERIES: { query: string; location: string; sector: string }[] = [
+  //---neue---//
+  // --- NEUE BOOM-BRANCHEN (Vision 2030 & GCC Mega Projects) ---
+
+  // Aviation & Aerospace (Luftfahrt)
+  { query: 'Cabin Crew',                   location: 'Dubai',                sector: 'Aviation'     },
+  { query: 'Flight Attendant',             location: 'Doha',                 sector: 'Aviation'     },
+  { query: 'Aircraft Mechanic',            location: 'Riyadh',               sector: 'Aviation'     },
+  { query: 'Ground Operations Agent',      location: 'Abu Dhabi',            sector: 'Aviation'     },
+  { query: 'Aviation Security',            location: 'Jeddah',               sector: 'Aviation'     },
+
+  // Events, Entertainment & Leisure
+  { query: 'Event Manager',                location: 'Riyadh',               sector: 'Entertainment'},
+  { query: 'AV Technician',                location: 'Dubai',                sector: 'Entertainment'},
+  { query: 'Theme Park Attendant',         location: 'Abu Dhabi',            sector: 'Entertainment'},
+  { query: 'Ticketing Agent',              location: 'Dubai',                sector: 'Entertainment'},
+  { query: 'Exhibition Organizer',         location: 'Qatar',                sector: 'Entertainment'},
+
+  // Media, Creative & Design
+  { query: 'Content Creator',              location: 'Dubai',                sector: 'Media'        },
+  { query: 'Video Editor',                 location: 'Riyadh',               sector: 'Media'        },
+  { query: 'Graphic Designer',             location: 'Dubai',                sector: 'Media'        },
+  { query: 'Social Media Manager',         location: 'Jeddah',               sector: 'Media'        },
+  { query: 'Copywriter',                   location: 'Abu Dhabi',            sector: 'Media'        },
+  { query: 'Interior Designer',            location: 'Dubai',                sector: 'Design'       },
+
+  // Renewable Energy & Sustainability
+  { query: 'Solar Panel Installer',        location: 'Saudi Arabia',         sector: 'Energy'       },
+  { query: 'Renewable Energy Engineer',    location: 'Dubai',                sector: 'Energy'       },
+  { query: 'Sustainability Consultant',    location: 'Abu Dhabi',            sector: 'Energy'       },
+  { query: 'HSE Manager',                  location: 'Qatar',                sector: 'Energy'       },
+
+  // Fitness, Beauty & Wellness
+  { query: 'Personal Trainer',             location: 'Dubai',                sector: 'Wellness'     },
+  { query: 'Spa Therapist',                location: 'Doha',                 sector: 'Wellness'     },
+  { query: 'Hairdresser / Stylist',        location: 'Dubai',                sector: 'Wellness'     },
+  { query: 'Clinic Manager',               location: 'Riyadh',               sector: 'Wellness'     },
+
+  // Legal & Corporate Compliance
+  { query: 'Legal Counsel',                location: 'Dubai',                sector: 'Legal'        },
+  { query: 'Compliance Officer',           location: 'Riyadh',               sector: 'Legal'        },
+  { query: 'Paralegal',                    location: 'Abu Dhabi',            sector: 'Legal'        },
+  { query: 'PRO (Public Relations Officer)',location:'Dubai',                sector: 'Administration'},
   // --- URSPRÜNGLICHE KATEGORIEN ---
   // Construction
   { query: 'Site Engineer',                location: 'Saudi Arabia',         sector: 'Construction' },
@@ -298,13 +340,15 @@ function mapJSearch(j: any, sector: string) {
     id:              `jsearch_${j.job_id}`,
     title:           j.job_title ?? '',
     company:         j.employer_name ?? '',
+    company_id:      null,                  // employer-posted jobs only
     location:        `${j.job_city ?? ''}, ${j.job_country ?? ''}`.replace(/^,\s*/, ''),
     country:         j.job_country ?? '',
     description:     (j.job_description ?? '').slice(0, 5000),
     employment_type: j.job_employment_type ?? '',
     remote:          j.job_is_remote ?? false,
     url:             j.job_apply_link ?? '',
-    source:          'jsearch',
+    source:          'scraped',             // satisfies jobs_source_check
+    provider:        'jsearch',              // original API for analytics/dedup
     industry:        sector,
     salary_min:      j.job_min_salary ?? null,
     salary_max:      j.job_max_salary ?? null,
@@ -321,13 +365,15 @@ function mapSerpApi(j: any, sector: string, location: string) {
     id,
     title:           j.title ?? '',
     company:         j.company_name ?? '',
+    company_id:      null,
     location:        j.location ?? location,
     country:         location,
     description:     (j.description ?? '').slice(0, 5000),
     employment_type: j.detected_extensions?.work_from_home ? 'Remote' : (j.detected_extensions?.schedule_type ?? ''),
     remote:          j.detected_extensions?.work_from_home ?? false,
     url:             j.related_links?.[0]?.link ?? j.link ?? '',
-    source:          'serp',
+    source:          'scraped',
+    provider:        'serp',
     industry:        sector,
     salary_min:      null,
     salary_max:      null,
