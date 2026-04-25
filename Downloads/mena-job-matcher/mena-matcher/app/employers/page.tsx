@@ -1,6 +1,7 @@
 // app/employers/page.tsx
 import Link from 'next/link';
 import { Briefcase, Users, Sparkles, Zap, ShieldCheck, ArrowRight } from 'lucide-react';
+import { createServerSupabaseClient } from '@/lib/supabase';
 
 export const metadata = {
   title: 'For Employers — Post Jobs Free | MENA Job Matcher',
@@ -8,7 +9,19 @@ export const metadata = {
     'Reach pre-qualified MENA talent. Post unlimited jobs for free, get AI-matched candidates, and grow your team faster.',
 };
 
-export default function EmployersLandingPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function EmployersLandingPage() {
+  // If the visitor is already logged in, skip the auth funnel and send them
+  // straight to the employer dashboard. The dashboard handles the
+  // "no company yet" case by rendering the CompanyForm, which on submit
+  // promotes profile.role → 'employer' via the upsertCompany Server Action.
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const primaryCta   = user ? '/employers/dashboard' : '/signup?role=employer&redirectTo=/employers/dashboard';
+  const secondaryCta = user ? '/employers/dashboard' : '/login?redirectTo=/employers/dashboard';
+
   return (
     <div className="min-h-screen bg-gradient-warm">
       {/* Top bar */}
@@ -18,17 +31,19 @@ export default function EmployersLandingPage() {
           <span className="text-sm font-medium text-neutral-700">MENA Job Matcher</span>
         </Link>
         <nav className="flex items-center gap-3">
+          {!user && (
+            <Link
+              href={secondaryCta}
+              className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary-600 transition-colors"
+            >
+              Sign in
+            </Link>
+          )}
           <Link
-            href="/login?redirectTo=/employers/dashboard"
-            className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary-600 transition-colors"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup?role=employer&redirectTo=/employers/dashboard"
+            href={primaryCta}
             className="px-4 py-2 text-sm font-semibold bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
           >
-            Post a job free
+            {user ? 'Go to dashboard' : 'Post a job free'}
           </Link>
         </nav>
       </header>
@@ -48,17 +63,19 @@ export default function EmployersLandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/signup?role=employer&redirectTo=/employers/dashboard"
+            href={primaryCta}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg shadow-md transition-all active:scale-[0.98]"
           >
-            Post your first job <ArrowRight className="w-4 h-4" />
+            {user ? 'Open employer dashboard' : 'Post your first job'} <ArrowRight className="w-4 h-4" />
           </Link>
-          <Link
-            href="/login?redirectTo=/employers/dashboard"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-neutral-50 border border-neutral-300 text-neutral-700 font-semibold rounded-lg transition-all"
-          >
-            I already have an account
-          </Link>
+          {!user && (
+            <Link
+              href={secondaryCta}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-neutral-50 border border-neutral-300 text-neutral-700 font-semibold rounded-lg transition-all"
+            >
+              I already have an account
+            </Link>
+          )}
         </div>
       </section>
 
@@ -102,10 +119,10 @@ export default function EmployersLandingPage() {
           </h2>
           <p className="text-neutral-600 mb-6">Setup takes under 2 minutes.</p>
           <Link
-            href="/signup?role=employer&redirectTo=/employers/dashboard"
+            href={primaryCta}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg shadow-md transition-all active:scale-[0.98]"
           >
-            Create employer account <ArrowRight className="w-4 h-4" />
+            {user ? 'Open employer dashboard' : 'Create employer account'} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>

@@ -50,9 +50,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect logged-in users away from auth pages
+  // Redirect logged-in users away from auth pages.
+  // Honor ?redirectTo (same-origin only) and ?role=employer so the employer
+  // flow doesn't dump people in the candidate dashboard.
   if ((pathname === '/login' || pathname === '/signup') && user) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    const redirectParam = req.nextUrl.searchParams.get('redirectTo');
+    const roleParam     = req.nextUrl.searchParams.get('role');
+
+    const isSafeRedirect =
+      !!redirectParam &&
+      redirectParam.startsWith('/') &&
+      !redirectParam.startsWith('//') &&
+      !redirectParam.startsWith('/\\');
+
+    const fallback = roleParam === 'employer' ? '/employers/dashboard' : '/dashboard';
+    const dest     = isSafeRedirect ? redirectParam! : fallback;
+
+    return NextResponse.redirect(new URL(dest, req.url));
   }
 
   return res;
