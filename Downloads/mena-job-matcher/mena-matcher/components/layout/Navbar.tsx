@@ -15,15 +15,36 @@ export function Navbar() {
   const isAr     = lang === 'ar';
 
   const [userEmail,   setUserEmail]   = useState<string | null>(null);
+  const [userRole,    setUserRole]    = useState<'candidate' | 'employer' | null>(null);
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [scrolled,    setScrolled]    = useState(false);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
+    const supabase = createClient();
+
+    async function loadUserAndRole() {
+      const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email ?? null);
-    });
-    const { data: { subscription } } = createClient().auth.onAuthStateChange((_, session) => {
-      setUserEmail(session?.user?.email ?? null);
+
+      if (!user) {
+        setUserRole(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const role = profile?.role;
+      setUserRole(role === 'employer' ? 'employer' : 'candidate');
+    }
+
+    loadUserAndRole();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadUserAndRole();
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -46,6 +67,15 @@ export function Navbar() {
     : [{ href: '/', label: 'Home' }, { href: '/jobs', label: 'Browse Jobs' }, { href: '/about', label: 'About' }, { href: '/contact', label: 'Contact' }];
 
   const postJobLabel = isAr ? 'انشر وظيفة' : 'Post a Job';
+
+  // Role-aware routing & visibility
+  const isEmployer       = userRole === 'employer';
+  const showPostJobCta   = !userEmail || isEmployer;
+  const postJobHref      = isEmployer ? '/employers/dashboard?new=1' : '/employers';
+  const dashboardHref    = isEmployer ? '/employers/dashboard' : '/dashboard';
+  const dashboardLabel   = isEmployer
+    ? (isAr ? 'لوحة الشركة' : 'Employer Dashboard')
+    : (isAr ? 'لوحة التحكم' : 'Dashboard');
 
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100' : 'bg-transparent'}`}
@@ -95,23 +125,25 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Employer CTA — outlined pill, stands apart from solid Login/Dashboard */}
-            <Link
-              href="/employers"
-              className="flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 hover:bg-primary-500 hover:text-white text-sm font-semibold rounded-full transition-all shadow-sm"
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              {postJobLabel}
-            </Link>
+            {/* Employer CTA — only for logged-out users and employers */}
+            {showPostJobCta && (
+              <Link
+                href={postJobHref}
+                className="flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 hover:bg-primary-500 hover:text-white text-sm font-semibold rounded-full transition-all shadow-sm"
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                {postJobLabel}
+              </Link>
+            )}
             <LanguageSwitcher />
             {userEmail ? (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/dashboard"
+                  href={dashboardHref}
                   className="flex items-center gap-2 px-4 py-2 bg-secondary-900 hover:bg-secondary-800 text-white text-sm font-semibold rounded-full transition-colors"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
-                  {isAr ? 'لوحة التحكم' : 'Dashboard'}
+                  {dashboardLabel}
                 </Link>
                 <button
                   onClick={handleSignOut}
@@ -157,17 +189,19 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
-          {/* Employer CTA in mobile menu */}
-          <div className="pt-2 border-t border-slate-100">
-            <Link
-              href="/employers"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center justify-center gap-2 py-2.5 border-2 border-primary-500 text-primary-600 active:bg-primary-500 active:text-white text-sm font-semibold rounded-xl transition-colors"
-            >
-              <Briefcase className="w-4 h-4" />
-              {postJobLabel}
-            </Link>
-          </div>
+          {/* Employer CTA in mobile menu — only for logged-out users and employers */}
+          {showPostJobCta && (
+            <div className="pt-2 border-t border-slate-100">
+              <Link
+                href={postJobHref}
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-center gap-2 py-2.5 border-2 border-primary-500 text-primary-600 active:bg-primary-500 active:text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                <Briefcase className="w-4 h-4" />
+                {postJobLabel}
+              </Link>
+            </div>
+          )}
           {/* Language toggle in mobile menu */}
           <div className="pt-2 border-t border-slate-100">
             <LanguageSwitcher />
@@ -176,11 +210,11 @@ export function Navbar() {
             {userEmail ? (
               <div className="flex gap-2">
                 <Link
-                  href="/dashboard"
+                  href={dashboardHref}
                   onClick={() => setMenuOpen(false)}
                   className="flex-1 text-center py-2.5 bg-secondary-900 text-white text-sm font-semibold rounded-xl"
                 >
-                  {isAr ? 'لوحة التحكم' : 'Dashboard'}
+                  {dashboardLabel}
                 </Link>
                 <button onClick={handleSignOut} className="px-3 py-2.5 border border-slate-200 rounded-xl text-neutral-500">
                   <LogOut className="w-4 h-4" />
