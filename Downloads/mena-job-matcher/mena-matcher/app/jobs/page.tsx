@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Briefcase, Sparkles, ExternalLink, ChevronRight, Building2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
@@ -7,23 +7,11 @@ import { Job } from '@/lib/types';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useLang } from '@/lib/i18n/LanguageContext';
+import { ARAB_COUNTRIES_CITIES } from '@/components/ui/LocationSelector';
 
 const INDUSTRIES = [
   'All', 'Marketing', 'Technology', 'Finance', 'Sales', 'Engineering',
   'Healthcare', 'Education', 'Design', 'Operations', 'HR', 'Legal',
-];
-
-const COUNTRIES = [
-  { value: '', label: 'All Locations' },
-  { value: 'sa', label: 'Saudi Arabia' },
-  { value: 'ae', label: 'UAE' },
-  { value: 'kw', label: 'Kuwait' },
-  { value: 'qa', label: 'Qatar' },
-  { value: 'bh', label: 'Bahrain' },
-  { value: 'om', label: 'Oman' },
-  { value: 'eg', label: 'Egypt' },
-  { value: 'jo', label: 'Jordan' },
-  { value: 'lb', label: 'Lebanon' },
 ];
 
 const PAGE_SIZE = 20;
@@ -55,6 +43,19 @@ export default function JobsPage() {
     page:         isAr ? 'صفحة' : 'Page',
     of:           isAr ? 'من' : 'of',
   };
+  // All 22 Arab League countries — single source of truth in LocationSelector.
+  // Country names switch to Arabic when the user toggles language.
+  const countries = useMemo(
+    () => [
+      { value: '', label: i18n.allLocations },
+      ...ARAB_COUNTRIES_CITIES.map((c) => ({
+        value: c.iso,
+        label: isAr ? c.ar : c.en,
+      })),
+    ],
+    [isAr, i18n.allLocations],
+  );
+
   const [jobs,       setJobs]       = useState<Job[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [total,      setTotal]      = useState(0);
@@ -129,7 +130,7 @@ export default function JobsPage() {
                 onChange={e => setCountry(e.target.value)}
                 className="outline-none text-sm text-slate-700 bg-transparent"
               >
-                {COUNTRIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {countries.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <button
