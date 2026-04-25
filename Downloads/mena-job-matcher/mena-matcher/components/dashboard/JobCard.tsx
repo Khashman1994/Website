@@ -7,10 +7,11 @@ import { MatchFeedback } from './MatchFeedback';
 import {
   MapPin, Building2, DollarSign, ChevronDown, ChevronUp,
   CheckCircle2, AlertCircle, Lightbulb, ExternalLink,
-  Lock, Sparkles, Heart, Zap,
+  Lock, Sparkles, Heart, Zap, Mail,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { toggleSavedJob } from '@/lib/supabase';
+import { applyHref, isEmailApply } from '@/lib/apply-href';
 
 // ── Animated Score Ring ───────────────────────────────────────────────────────
 function ScoreRing({ score }: { score: number }) {
@@ -364,13 +365,20 @@ export function JobCard({ job, index, initialSaved = false, onSaveToggle, isLock
                   {isAr ? 'تحليل ذكي' : 'AI Analysis'}
                 </button>
               )}
-              <a
-                href={job.url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold rounded-full transition-colors shadow-sm"
-              >
-                <ExternalLink className="w-3 h-3" />
-                {t.applyNow}
-              </a>
+              {(() => {
+                const href    = applyHref(job.url);
+                const isEmail = isEmailApply(job.url);
+                return (
+                  <a
+                    href={href}
+                    {...(isEmail ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold rounded-full transition-colors shadow-sm"
+                  >
+                    {isEmail ? <Mail className="w-3 h-3" /> : <ExternalLink className="w-3 h-3" />}
+                    {isEmail ? (isAr ? 'تقديم عبر البريد' : 'Email CV') : t.applyNow}
+                  </a>
+                );
+              })()}
             </div>
             <AnimatePresence>
               {isExpanded && hasInsights && (

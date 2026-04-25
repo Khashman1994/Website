@@ -3,7 +3,8 @@ import { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, Building2, ExternalLink, ArrowLeft, Briefcase } from 'lucide-react';
+import { MapPin, Building2, ExternalLink, ArrowLeft, Briefcase, Mail } from 'lucide-react';
+import { applyHref, isEmailApply } from '@/lib/apply-href';
 
 // ISR: revalidate every 24 hours — Google sees fresh content
 export const revalidate = 86400;
@@ -282,12 +283,22 @@ export default async function JobPage({ params }: { params: { id: string } }) {
         {/* CTA */}
         <div className="text-center">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            {/* Button 1: Apply */}
-            <a href={job.url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-200 active:scale-95 w-full sm:w-auto justify-center">
-              <ExternalLink className="w-5 h-5" />
-              Apply for this Job
-            </a>
+            {/* Button 1: Apply — supports both URLs and email addresses */}
+            {(() => {
+              const href     = applyHref(job.url);
+              const isEmail  = isEmailApply(job.url);
+              const isExt    = !isEmail;
+              return (
+                <a
+                  href={href}
+                  {...(isExt ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-200 active:scale-95 w-full sm:w-auto justify-center"
+                >
+                  {isEmail ? <Mail className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
+                  {isEmail ? 'Email your CV' : 'Apply for this Job'}
+                </a>
+              );
+            })()}
             {/* Button 2: AI Match */}
             <Link href="/"
               className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all active:scale-95 w-full sm:w-auto justify-center">
@@ -295,7 +306,9 @@ export default async function JobPage({ params }: { params: { id: string } }) {
             </Link>
           </div>
           <p className="text-slate-400 text-xs mt-3">
-            Apply button opens the original job posting
+            {isEmailApply(job.url)
+              ? 'Apply button opens your email client with the employer pre-filled'
+              : 'Apply button opens the original job posting'}
           </p>
         </div>
 

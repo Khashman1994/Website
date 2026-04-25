@@ -50,9 +50,9 @@ export function JobPostForm({ initialJob }: Props) {
         salaryOpt:       '(اختياري)',
         min:             'الحد الأدنى',
         max:             'الحد الأقصى',
-        url:             'رابط التقديم الخارجي',
-        urlHint:         'إذا كان على المرشحين التقديم عبر موقعك',
-        urlPh:           'https://acme.com/careers/123',
+        url:             'رابط التقديم أو البريد الإلكتروني',
+        urlHint:         'رابط صفحة التوظيف أو بريد إلكتروني لاستلام الطلبات',
+        urlPh:           'https://... أو hr@company.com',
         remote:          'متاح عن بُعد',
         publish:         'نشر الوظيفة',
         save:            'حفظ التغييرات',
@@ -74,9 +74,9 @@ export function JobPostForm({ initialJob }: Props) {
         salaryOpt:       '(optional)',
         min:             'Min',
         max:             'Max',
-        url:             'External application URL',
-        urlHint:         'If candidates should apply on your site',
-        urlPh:           'https://acme.com/careers/123',
+        url:             'Application Link or Email',
+        urlHint:         'Link to your careers page or an HR email address',
+        urlPh:           'https://... or hr@company.com',
         remote:          'Remote-friendly',
         publish:         'Publish job',
         save:            'Save changes',
@@ -212,10 +212,11 @@ export function JobPostForm({ initialJob }: Props) {
       <Field label={T.url} hint={T.urlHint}>
         <input
           name="url"
-          type="url"
+          type="text"
           defaultValue={initialJob?.url ?? ''}
           placeholder={T.urlPh}
           className="input"
+          dir="ltr"
         />
       </Field>
 
