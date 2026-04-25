@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LanguageContext';
 import { createClient, saveProfile } from '@/lib/supabase';
+import { LocationSelector } from '@/components/ui/LocationSelector';
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -224,7 +225,16 @@ export function ProfileCard({ profile, onProfileUpdate, onRequestReUpload, onSav
         <div>
           <Label icon={<MapPin className="w-3.5 h-3.5" />} text={t.location} />
           {isEditing ? (
-            <input value={location} onChange={(e) => setLocation(e.target.value)} className={inp} placeholder={isAr ? 'الموقع' : 'e.g. Dubai, UAE'} />
+            <div className="mt-1">
+              <LocationSelector
+                key={`loc-${isEditing}`}
+                value={location}
+                onChange={setLocation}
+                allowCountryOnly
+                required={false}
+                className="grid grid-cols-2 gap-2"
+              />
+            </div>
           ) : (
             <p className="text-sm text-neutral-700 mt-1">{profile.location || '—'}</p>
           )}
