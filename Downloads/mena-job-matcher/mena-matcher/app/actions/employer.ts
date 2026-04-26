@@ -4,6 +4,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabaseClient } from '@/lib/supabase';
+import { toIso } from '@/lib/country-iso';
 import type { Company, CompanyInput, Job, JobPostInput } from '@/lib/types';
 
 export type ActionResult<T = unknown> =
@@ -164,7 +165,7 @@ export async function postJob(
       company:         company.name,        // denormalised for backwards-compat
       company_id:      company.id,
       location:        payload.location,
-      country:         payload.location.split(',').slice(-1)[0]?.trim() || payload.location,
+      country:         toIso(payload.location),
       description:     payload.description.slice(0, 5000),
       employment_type: payload.employment_type ?? '',
       remote:          payload.remote ?? false,
@@ -269,7 +270,7 @@ export async function updateJob(
       .update({
         title:           payload.title,
         location:        payload.location,
-        country:         payload.location.split(',').slice(-1)[0]?.trim() || payload.location,
+        country:         toIso(payload.location),
         description:     payload.description.slice(0, 5000),
         employment_type: payload.employment_type ?? '',
         remote:          payload.remote ?? false,
